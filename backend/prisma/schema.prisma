@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ORGANISER
+  ATTENDEE
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  fullName     String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organisedEvents Event[]   @relation("OrganiserEvents")
+  bookings        Booking[]
+}
+
+model Venue {
+  id          String   @id @default(uuid())
+  name        String
+  address     String
+  city        String
+  country     String
+  maxCapacity Int
+  createdAt   DateTime @default(now())
+
+  events Event[]
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String @unique
+
+  events Event[]
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  eventDate   DateTime
+  capacity    Int
+  status      EventStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  organiserId String
+  venueId     String
+  categoryId  String
+
+  organiser User     @relation("OrganiserEvents", fields: [organiserId], references: [id], onDelete: Cascade)
+  venue     Venue    @relation(fields: [venueId], references: [id])
+  category  Category @relation(fields: [categoryId], references: [id])
+
+  bookings Booking[]
+  images   EventImage[]
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  quantity      Int
+  bookingStatus BookingStatus @default(CONFIRMED)
+  bookedAt      DateTime      @default(now())
+
+  userId  String
+  eventId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}
+
+model EventImage {
+  id       String  @id @default(uuid())
+  imageUrl String
+  altText  String?
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}

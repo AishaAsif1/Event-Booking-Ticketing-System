@@ -1,0 +1,37 @@
+### Register User (Organiser)
+POST http://127.0.0.1:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Aisha Asif",
+  "email": "aisha1@example.com",
+  "password": "my very long secure passphrase",
+  "role": "ORGANISER"
+}
+
+
+### Login User
+POST http://127.0.0.1:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "aisha1@example.com",
+  "password": "my very long secure passphrase"
+}
+
+### Test Protected Route (Coming Soon)
+GET http://127.0.0.1:5000/
+Authorization: Bearer YOUR_TOKEN_HERE
+### Create Event (Organiser only)
+POST http://127.0.0.1:5000/api/events
+Content-Type: application/json
+Authorization: Bearer PASTE_YOUR_LOGIN_TOKEN_HERE
+
+{
+  "title": "AI Security Workshop",
+  "description": "A detailed workshop on secure web development and authentication.",
+  "eventDate": "2026-04-15T14:00:00.000Z",
+  "capacity": 100,
+  "venueId": "11111111-1111-1111-1111-111111111111",
+  "categoryId": "PUT_CATEGORY_ID_HERE"
+}
