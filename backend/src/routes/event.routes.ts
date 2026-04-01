@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   createEvent,
   publishEvent,
+  deleteEvent,
+  updateEvent,
   getAllEvents,
   getEventById
 } from "../controllers/event.controller";
@@ -34,6 +36,21 @@ router.patch(
   authenticate,
   authorize("ORGANISER"),
   publishEvent
+);
+
+router.patch(
+  "/:eventId",
+  authenticate,
+  authorize("ORGANISER"),
+  validate(createEventSchema), 
+  updateEvent
+);
+
+router.delete(
+  "/:eventId",
+  authenticate,
+  authorize("ORGANISER"),
+  deleteEvent
 );
 
 export default router;
