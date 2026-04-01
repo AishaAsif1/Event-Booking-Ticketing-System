@@ -5,6 +5,7 @@ import {
   deleteEvent,
   updateEvent,
   getAllEvents,
+  getUserEvents,
   getEventById
 } from "../controllers/event.controller";
 import { authenticate } from "../middlewares/auth";
@@ -22,6 +23,7 @@ router.get("/test", (_req, res) => {
 
 router.get("/", getAllEvents);
 router.get("/:eventId", getEventById);
+router.get("/my",authenticate, getUserEvents);
 
 router.post(
   "/",
@@ -52,5 +54,6 @@ router.delete(
   authorize("ORGANISER"),
   deleteEvent
 );
+
 
 export default router;

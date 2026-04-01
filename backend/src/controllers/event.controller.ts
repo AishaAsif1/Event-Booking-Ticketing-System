@@ -210,3 +210,26 @@ export const deleteEvent = async (
     });
   }
 };
+
+export const getUserEvents = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const organiserId = req.user!.userId;
+
+    const events = await prisma.event.findMany({
+      where: { organiserId }
+    });
+
+    return res.status(200).json({
+      message: "Organizer events fetched successfully",
+      events
+    });
+  } catch (error) {
+    console.error("GET MY EVENTS ERROR:", error);
+    return res.status(500).json({
+      message: "Something went wrong while fetching your events"
+    });
+  }
+};
