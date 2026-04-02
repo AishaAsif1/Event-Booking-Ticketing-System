@@ -166,7 +166,6 @@ export const cancelBooking = async (
       });
     }
 
-    // Find the booking for this user and event
     const existingBooking = await prisma.booking.findUnique({
       where: {
         userId_eventId: { userId, eventId }
@@ -185,7 +184,6 @@ export const cancelBooking = async (
       });
     }
 
-    // Update the booking status to CANCELED
     const canceledBooking = await prisma.booking.update({
       where: {
         userId_eventId: { userId, eventId }
