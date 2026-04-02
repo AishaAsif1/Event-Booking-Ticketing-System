@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createBooking, getMyBookings } from "../controllers/booking.controller";
+import { createBooking, getMyBookings, cancelBooking } from "../controllers/booking.controller";
 import { authenticate } from "../middlewares/auth";
 import { authorize } from "../middlewares/authorize";
 import { validate } from "../middlewares/validate";
@@ -20,6 +20,13 @@ router.post(
   authorize("ATTENDEE"),
   validate(createBookingSchema),
   createBooking
+);
+
+router.patch(
+  "/:eventId/cancel",
+  authenticate,
+  authorize("ATTENDEE"),
+  cancelBooking
 );
 
 export default router;
