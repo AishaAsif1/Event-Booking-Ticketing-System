@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EventStatus } from "@prisma/client";
 
 export const createEventSchema = z.object({
     title: z
@@ -22,4 +23,18 @@ export const createEventSchema = z.object({
 
     categoryId: z
         .string()
+});
+
+export const eventQuerySchema = z.object({
+  // Transform string numbers from URL into actual numbers, default to 1 and 10
+  page: z.string().optional().transform((val) => (val ? parseInt(val) : 1)),
+  limit: z.string().optional().transform((val) => (val ? parseInt(val) : 10)),
+  
+  // Optional search string
+  search: z.string().optional(),
+  
+  // Optional filters
+  categoryId: z.string().uuid().optional(),
+  venueId: z.string().uuid().optional(),
+  status: z.nativeEnum(EventStatus).optional(),
 });

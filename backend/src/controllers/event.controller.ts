@@ -1,22 +1,62 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
 import { AuthenticatedRequest } from "../middlewares/auth";
+import { eventQuerySchema } from "../validators/event.validator"; //
 
 
-
-export const getAllEvents = async (_req: Request, res: Response) => {
+export const getAllEvents = async (req: Request, res: Response) => {
   try {
-    const events = await prisma.event.findMany({
-      orderBy: {
-        eventDate: "asc"
+    // 1. Validate and extract query parameters
+    const queryParams = eventQuerySchema.parse(req.query);
+    const { page, limit, search, categoryId, venueId, status } = queryParams;
+
+    const skip = (page - 1) * limit; // Calculate how many records to skip
+
+    // 2. Build the dynamic 'where' filter
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    if (categoryId) where.categoryId = categoryId;
+    if (venueId) where.venueId = venueId;
+    if (status) where.status = status;
+
+    // 3. Execute count and findMany in parallel for efficiency
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { eventDate: "asc" },
+        include: {
+          venue: true,
+          category: true,
+          organiser: { select: { id: true, fullName: true } }
+        }
+      }),
+      prisma.event.count({ where })
+    ]);
+
+    // 4. Return data with pagination metadata
+    return res.status(200).json({
+      data: events,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
       }
     });
-
-    return res.status(200).json(events);
-  } catch (error) {
+  } catch (error: any) {
     console.error("GET ALL EVENTS ERROR:", error);
-    return res.status(500).json({
-      message: "Something went wrong while fetching events"
+    return res.status(400).json({
+      message: "Invalid query parameters",
+      errors: error.issues || error.errors
     });
   }
 };
