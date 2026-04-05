@@ -3,44 +3,43 @@ import { prisma } from "../config/prisma";
 import { AuthenticatedRequest } from "../middlewares/auth";
 import { eventQuerySchema } from "../validators/event.validator"; //
 
+const getSingleParam = (param: string | string[] | undefined): string | undefined =>
+  Array.isArray(param) ? param[0] : param;
 
 export const getAllEvents = async (req: Request, res: Response) => {
   try {
-    // 1. Validate and extract query parameters
-    const queryParams = eventQuerySchema.parse(req.query);
-    const { page, limit, search, categoryId, venueId, status } = queryParams;
+// 1. Validate and extract query parameters
+const queryParams = eventQuerySchema.parse(req.query);
+const { page, limit, search, categoryId, status, sortBy, order } = queryParams;
+const venueId = getSingleParam(req.query.venueId as string | string[] | undefined);
 
-    const skip = (page - 1) * limit; // Calculate how many records to skip
+const skip = (page - 1) * limit; // Calculate how many records to skip
 
-    // 2. Build the dynamic 'where' filter
-    const where: any = {};
+// 2. Build the dynamic 'where' filter
+const where: any = {};
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
-    }
+if (search) {
+  where.OR = [
+    { title: { contains: search, mode: 'insensitive' } },
+    { description: { contains: search, mode: 'insensitive' } }
+  ];
+}
 
-    if (categoryId) where.categoryId = categoryId;
-    if (venueId) where.venueId = venueId;
-    if (status) where.status = status;
+if (categoryId) where.categoryId = categoryId;
+if (venueId) where.venueId = venueId;
+if (status) where.status = status;
 
-    // 3. Execute count and findMany in parallel for efficiency
-    const [events, total] = await Promise.all([
-      prisma.event.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { eventDate: "asc" },
-        include: {
-          venue: true,
-          category: true,
-          organiser: { select: { id: true, fullName: true } }
-        }
-      }),
-      prisma.event.count({ where })
-    ]);
+// 3. Execute count and findMany in parallel for efficiency
+const [events, total] = await Promise.all([
+  prisma.event.findMany({
+    where,
+    take: limit,
+    skip,
+    orderBy: { [sortBy!]: order },
+    include: { category: true, venue: true },
+  }),
+  prisma.event.count({ where })
+]);
 
     // 4. Return data with pagination metadata
     return res.status(200).json({
@@ -63,7 +62,13 @@ export const getAllEvents = async (req: Request, res: Response) => {
 
 export const getEventById = async (req: Request, res: Response) => {
   try {
-    const { eventId } = req.params;
+    const eventId = getSingleParam(req.params.eventId);
+
+    if (!eventId) {
+      return res.status(400).json({
+        message: "Invalid event id"
+      });
+    }
 
     const event = await prisma.event.findUnique({
       where: {
@@ -125,8 +130,14 @@ export const publishEvent = async (
   res: Response
 ) => {
   try {
-    const { eventId } = req.params;
+    const eventId = getSingleParam(req.params.eventId);
     const organiserId = req.user!.userId;
+
+    if (!eventId) {
+      return res.status(400).json({
+        message: "Invalid event id"
+      });
+    }
 
     const existingEvent = await prisma.event.findUnique({
       where: { id: eventId }
@@ -168,9 +179,15 @@ export const updateEvent = async (
   res: Response
 ) => {
   try {
-    const { eventId } = req.params;
+    const eventId = getSingleParam(req.params.eventId);
     const organiserId = req.user!.userId;
     const { title, description, eventDate, capacity, venueId, categoryId } = req.body;
+
+    if (!eventId) {
+      return res.status(400).json({
+        message: "Invalid event id"
+      });
+    }
 
     const existingEvent = await prisma.event.findUnique({
       where: { id: eventId }
@@ -217,8 +234,14 @@ export const deleteEvent = async (
   res: Response
 ) => {
   try {
-    const { eventId } = req.params;
+    const eventId = getSingleParam(req.params.eventId);
     const organiserId = req.user!.userId;
+
+    if (!eventId) {
+      return res.status(400).json({
+        message: "Invalid event id"
+      });
+    }
 
     const existingEvent = await prisma.event.findUnique({
       where: { id: eventId }
