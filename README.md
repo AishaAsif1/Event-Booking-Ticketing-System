@@ -2,20 +2,30 @@
 
 A backend API for managing events and ticket bookings, built with Node.js, Express, TypeScript, and Prisma.
 
-## Overview
+## Team Members
+
+- Salar Amir - 2600229
+- Nezar Wadhah - 2643997
+- Aisha Asif - 2645323
+
+
+## Project Overview
 
 This project supports two roles:
 
 - `ORGANISER`: create, update, publish, and delete events.
 - `ATTENDEE`: browse events and create/cancel bookings.
 
-Core capabilities:
+## Key Features
 
-- JWT authentication and role-based authorization.
-- Event lifecycle management (`DRAFT`, `PUBLISHED`, `CANCELLED`).
-- Capacity-safe booking logic to prevent overbooking.
-- Pagination, filtering, search, and sorting for event listing.
-- Prisma ORM with PostgreSQL.
+- RESTful API structure with clear route grouping (`/api/auth`, `/api/events`, `/api/bookings`).
+- JWT authentication and role-based access control (`ORGANISER`, `ATTENDEE`).
+- Event lifecycle management with publish workflow (`DRAFT`, `PUBLISHED`, `CANCELLED`).
+- Capacity-safe booking engine with duplicate-booking update behavior.
+- Pagination support on events endpoint with metadata (`total`, `page`, `limit`, `totalPages`).
+- Advanced search querying with text search, filtering, and sorting.
+- Auth endpoint rate limiting to protect against abuse.
+- Prisma ORM with relational models, migrations, and seed script support.
 
 ## Tech Stack
 
@@ -31,20 +41,45 @@ Core capabilities:
 
 ```text
 Event-Booking-Ticketing-System/
+	README.md
 	test.http
 	backend/
+		.env
+		.gitignore
+		package.json
+		package-lock.json
+		prisma.config.ts
+		tsconfig.json
+		node_modules/ (generated)
 		prisma/
 			schema.prisma
-			migrations/
 			seed.ts
+			migrations/
+				migration_lock.toml
+				20260328171330_init/
+					migration.sql
 		src/
-			config/
-			controllers/
-			middlewares/
-			routes/
-			validators/
 			app.ts
 			server.ts
+			config/
+				prisma.ts
+			controllers/
+				auth.controller.ts
+				booking.controller.ts
+				event.controller.ts
+				prisma.ts
+			middlewares/
+				auth.ts
+				authorize.ts
+				validate.ts
+			routes/
+				auth.routes.ts
+				booking.routes.ts
+				event.routes.ts
+			validators/
+				auth.validator.ts
+				booking.validator.ts
+				event.validator.ts
 ```
 
 ## Prerequisites
@@ -160,6 +195,95 @@ Example:
 GET /api/events?page=1&limit=10&search=workshop&status=PUBLISHED&sortBy=eventDate&order=asc
 ```
 
+## Pagination, Rate Limiting, And Advanced Search
+
+### Pagination
+
+Pagination is implemented in `GET /api/events` using `page` and `limit` query parameters.
+
+- Offset is calculated as `(page - 1) * limit`.
+- Response includes pagination metadata:
+	- `total`
+	- `page`
+	- `limit`
+	- `totalPages`
+
+Example:
+
+```http
+GET /api/events?page=2&limit=5
+```
+
+### Rate Limiting
+
+Authentication routes are protected using `express-rate-limit`:
+
+- Applied to:
+	- `POST /api/auth/register`
+	- `POST /api/auth/login`
+- Current policy:
+	- Time window: `15 minutes`
+	- Max requests: `10` per IP per window
+- On limit exceed, API returns:
+	- `429 Too Many Requests`
+	- Message: `Too many authentication attempts. Please try again later.`
+
+This protects login/register endpoints against brute-force and abuse attempts.
+
+### Advanced Search Querying
+
+The events endpoint supports dynamic filtering and sorting:
+
+- Text search (`search`):
+	- Case-insensitive partial matching across both `title` and `description`.
+- Filters:
+	- `status`
+	- `categoryId`
+	- `venueId`
+- Sorting:
+	- `sortBy`: `eventDate`, `title`, `createdAt`
+	- `order`: `asc` or `desc`
+
+Example advanced query:
+
+```http
+GET /api/events?page=1&limit=10&search=security&status=PUBLISHED&categoryId=<category-uuid>&venueId=<venue-uuid>&sortBy=createdAt&order=desc
+```
+
+## Technical Requirements Coverage (Backend Part 1)
+
+### Must Include
+
+- RESTful API design:
+	- Implemented with resource-based routes and proper HTTP methods.
+- Proper route structure:
+	- Route modules separated by domain (`auth`, `events`, `bookings`).
+- Prisma ORM models:
+	- Database access implemented through Prisma Client.
+- At least 3-4 relational models:
+	- Includes `User`, `Event`, `Booking`, `Venue`, `Category`, `EventImage`.
+- Input validation:
+	- Request validation implemented via Zod schemas.
+- Authentication (sessions or JWT):
+	- JWT-based stateless authentication is implemented.
+- Authorisation (role-based access control):
+	- Role checks enforced for organiser/attendee protected routes.
+- Proper error handling:
+	- Returns structured error responses with relevant status codes.
+- Migrations:
+	- Prisma migrations tracked under `backend/prisma/migrations`.
+- Seed script with sufficient sample data:
+	- Seed flow available through `npm run seed` (`backend/prisma/seed.ts`).
+
+### Must Demonstrate
+
+- Async/await usage:
+	- Controller and database operations use async/await patterns.
+- Proper HTTP status codes:
+	- Uses 200/201/400/401/403/404/409/429/500 where appropriate.
+- Clean separation of concerns:
+	- Organized into routes, controllers, validators, middlewares, and config layers.
+
 ## Testing
 
 You can test endpoints using:
@@ -228,6 +352,19 @@ The following scenarios were executed as part of the complete backend walkthroug
 
 - Backend server process started successfully using `npm run dev` from `backend/`.
 - Health endpoint `GET /` returned a successful response from `http://127.0.0.1:5000`.
+
+### Terminal Logging
+
+While running `npm run dev`, monitor terminal output for runtime visibility:
+
+- Startup logs:
+	- Confirms app bootstrap and route loading.
+	- Confirms active port (for example, `Server running on port 5000`).
+- Error logs:
+	- Controller-level failures are printed with contextual labels such as `LOGIN ERROR`, `CREATE EVENT ERROR`, and `CREATE BOOKING ERROR`.
+	- Use these logs together with API response codes to debug request failures quickly.
+
+Current logging is console-based (application startup and error tracing). If more detailed request-level tracing is required, add an HTTP request logger middleware (for example, morgan) for method, route, status code, and response time logs.
 
 
 ## Security Notes
