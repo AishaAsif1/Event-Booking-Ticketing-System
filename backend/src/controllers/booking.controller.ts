@@ -2,6 +2,8 @@ import { Response } from "express";
 import { prisma } from "../config/prisma";
 import { AuthenticatedRequest } from "../middlewares/auth";
 
+
+
 export const createBooking = async (
   req: AuthenticatedRequest,
   res: Response
@@ -64,6 +66,8 @@ export const createBooking = async (
         : 0;
 
     const newTotalBooked = totalBooked - currentUserBooked + quantity;
+
+    //source chatgpt - "Chat gpt was used to handle edge cases/error handling"
 
     if (newTotalBooked > event.capacity) {
       return res.status(400).json({

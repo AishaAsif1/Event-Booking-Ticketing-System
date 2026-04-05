@@ -3,6 +3,8 @@ import { prisma } from "../config/prisma";
 import { AuthenticatedRequest } from "../middlewares/auth";
 import { eventQuerySchema } from "../validators/event.validator"; //
 
+//source Chatgpt - while writing code we were faced with some errors in creating events and we used chat gpt to fix the errors 
+
 const getSingleParam = (param: string | string[] | undefined): string | undefined =>
   Array.isArray(param) ? param[0] : param;
 

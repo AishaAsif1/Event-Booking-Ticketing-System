@@ -1,3 +1,5 @@
+
+//source: prisma documentation -https://www.prisma.io/docs
 generator client {
   provider = "prisma-client-js"
 }

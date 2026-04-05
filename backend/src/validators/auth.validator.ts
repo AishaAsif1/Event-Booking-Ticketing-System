@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+// Adapted from: ChatGPT response to the question "Give me a list of a few weak passwords"
 const weakPasswords = [
     "password",
     "password123",

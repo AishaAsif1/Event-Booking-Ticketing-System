@@ -1,3 +1,5 @@
+
+//Source JWT docs - https://www.jwt.io/introduction#what-is-json-web-token
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
