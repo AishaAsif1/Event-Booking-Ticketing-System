@@ -128,7 +128,7 @@ Base URL: `/api`
 
 - `GET /events`
 - `GET /events/:eventId`
-- `GET /events/my` (authenticated)
+- `GET /events/my` (AUTHENTICATED)
 - `POST /events` (ORGANISER)
 - `PATCH /events/:eventId/publish` (ORGANISER)
 - `PATCH /events/:eventId` (ORGANISER)
