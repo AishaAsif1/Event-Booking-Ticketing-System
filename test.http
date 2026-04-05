@@ -1,37 +1,219 @@
-### Register User (Organiser)
-POST http://127.0.0.1:5000/api/auth/register
+@baseUrl = http://127.0.0.1:5000
+
+# Update these before running event creation/booking requests.
+@venueId = REPLACE_WITH_VALID_VENUE_UUID
+@categoryId = REPLACE_WITH_VALID_CATEGORY_UUID
+
+# Set this after creating an event, or from any existing event in your DB.
+@eventId = REPLACE_WITH_EVENT_UUID
+
+### Health Check
+GET {{baseUrl}}/
+
+### Register Organiser (Success)
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
   "fullName": "Aisha Asif",
-  "email": "aisha1@example.com",
-  "password": "my very long secure passphrase",
+  "email": "aisha.organiser@example.com",
+  "password": "veryStrongPassword2026!",
   "role": "ORGANISER"
 }
 
-
-### Login User
-POST http://127.0.0.1:5000/api/auth/login
+### Register Attendee (Success)
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-  "email": "aisha1@example.com",
-  "password": "my very long secure passphrase"
+  "fullName": "Ali Raza",
+  "email": "ali.attendee@example.com",
+  "password": "anotherStrongPass2026!",
+  "role": "ATTENDEE"
 }
 
-### Test Protected Route (Coming Soon)
-GET http://127.0.0.1:5000/
-Authorization: Bearer YOUR_TOKEN_HERE
-### Create Event (Organiser only)
-POST http://127.0.0.1:5000/api/events
+### Register Validation Check (Weak Password, Expect 400)
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
-Authorization: Bearer PASTE_YOUR_LOGIN_TOKEN_HERE
+
+{
+  "fullName": "Weak Pass",
+  "email": "weak@example.com",
+  "password": "password123",
+  "role": "ATTENDEE"
+}
+
+### Login Organiser (Saves Token)
+# @name loginOrganiser
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "aisha.organiser@example.com",
+  "password": "veryStrongPassword2026!"
+}
+
+> {%
+client.global.set("organiserToken", response.body.token);
+client.global.set("organiserId", response.body.user.id);
+%}
+
+### Login Attendee (Saves Token)
+# @name loginAttendee
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "ali.attendee@example.com",
+  "password": "anotherStrongPass2026!"
+}
+
+> {%
+client.global.set("attendeeToken", response.body.token);
+client.global.set("attendeeId", response.body.user.id);
+%}
+
+### Login Negative Check (Wrong Password, Expect 401)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "aisha.organiser@example.com",
+  "password": "wrong-password"
+}
+
+### Create Event (Organiser Only)
+# @name createEvent
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+Authorization: Bearer {{organiserToken}}
 
 {
   "title": "AI Security Workshop",
   "description": "A detailed workshop on secure web development and authentication.",
-  "eventDate": "2026-04-15T14:00:00.000Z",
+  "eventDate": "2026-12-15T14:00:00.000Z",
   "capacity": 100,
-  "venueId": "11111111-1111-1111-1111-111111111111",
-  "categoryId": "PUT_CATEGORY_ID_HERE"
+  "venueId": "{{venueId}}",
+  "categoryId": "{{categoryId}}"
 }
+
+> {%
+if (response.body && response.body.event && response.body.event.id) {
+  client.global.set("eventId", response.body.event.id);
+}
+%}
+
+### Create Event Authorization Check (Attendee Should Fail, Expect 403)
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+Authorization: Bearer {{attendeeToken}}
+
+{
+  "title": "Unauthorized Event Attempt",
+  "description": "Attendees should not be able to create events.",
+  "eventDate": "2026-12-20T10:00:00.000Z",
+  "capacity": 50,
+  "venueId": "{{venueId}}",
+  "categoryId": "{{categoryId}}"
+}
+
+### Publish Event (Organiser)
+PATCH {{baseUrl}}/api/events/{{eventId}}/publish
+Authorization: Bearer {{organiserToken}}
+
+### Update Event (Organiser)
+PATCH {{baseUrl}}/api/events/{{eventId}}
+Content-Type: application/json
+Authorization: Bearer {{organiserToken}}
+
+{
+  "title": "AI Security Workshop - Updated",
+  "description": "Updated event details with stronger security and auth modules.",
+  "eventDate": "2026-12-16T14:00:00.000Z",
+  "capacity": 120,
+  "venueId": "{{venueId}}",
+  "categoryId": "{{categoryId}}"
+}
+
+### List Events (Pagination, Search, Filter, Sort)
+GET {{baseUrl}}/api/events?page=1&limit=10&search=security&status=PUBLISHED&categoryId={{categoryId}}&sortBy=eventDate&order=asc
+
+### List Events (Using venueId filter)
+GET {{baseUrl}}/api/events?page=1&limit=5&venueId={{venueId}}&sortBy=createdAt&order=desc
+
+### Get Event By Id
+GET {{baseUrl}}/api/events/{{eventId}}
+
+### Get Organiser's Own Events
+GET {{baseUrl}}/api/events/my
+Authorization: Bearer {{organiserToken}}
+
+### Create Booking (Attendee)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+Authorization: Bearer {{attendeeToken}}
+
+{
+  "eventId": "{{eventId}}",
+  "quantity": 2
+}
+
+### Update Existing Booking Quantity (Same User + Event)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+Authorization: Bearer {{attendeeToken}}
+
+{
+  "eventId": "{{eventId}}",
+  "quantity": 4
+}
+
+### Overbooking Check (Expect 400 if quantity exceeds capacity)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+Authorization: Bearer {{attendeeToken}}
+
+{
+  "eventId": "{{eventId}}",
+  "quantity": 99999
+}
+
+### Get My Bookings (Attendee)
+GET {{baseUrl}}/api/bookings/my
+Authorization: Bearer {{attendeeToken}}
+
+### Cancel Booking (Attendee)
+PATCH {{baseUrl}}/api/bookings/{{eventId}}/cancel
+Authorization: Bearer {{attendeeToken}}
+
+### Cancel Already Cancelled Booking (Expect 400)
+PATCH {{baseUrl}}/api/bookings/{{eventId}}/cancel
+Authorization: Bearer {{attendeeToken}}
+
+### Organiser Creates Booking For Attendee
+POST {{baseUrl}}/api/bookings/organizer
+Content-Type: application/json
+Authorization: Bearer {{organiserToken}}
+
+{
+  "eventId": "{{eventId}}",
+  "quantity": 1,
+  "userId": "{{attendeeId}}"
+}
+
+### Booking Validation Check (Invalid UUID, Expect 400)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+Authorization: Bearer {{attendeeToken}}
+
+{
+  "eventId": "not-a-uuid",
+  "quantity": 1
+}
+
+### Protected Route Check Without Token (Expect 401)
+GET {{baseUrl}}/api/bookings/my
+
+### Delete Event (Organiser)
+DELETE {{baseUrl}}/api/events/{{eventId}}
+Authorization: Bearer {{organiserToken}}
