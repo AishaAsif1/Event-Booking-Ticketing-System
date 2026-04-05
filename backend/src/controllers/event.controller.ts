@@ -12,12 +12,9 @@ export const getAllEvents = async (req: Request, res: Response) => {
 const queryParams = eventQuerySchema.parse(req.query);
 const { page, limit, search, categoryId, status, sortBy, order } = queryParams;
 const venueId = getSingleParam(req.query.venueId as string | string[] | undefined);
-
 const skip = (page - 1) * limit; // Calculate how many records to skip
-
 // 2. Build the dynamic 'where' filter
 const where: any = {};
-
 if (search) {
   where.OR = [
     { title: { contains: search, mode: 'insensitive' } },

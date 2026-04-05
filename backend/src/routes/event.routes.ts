@@ -12,9 +12,7 @@ import { authenticate } from "../middlewares/auth";
 import { authorize } from "../middlewares/authorize";
 import { validate } from "../middlewares/validate";
 import { createEventSchema } from "../validators/event.validator";
-
 const router = Router();
-
 router.get("/test", (_req, res) => {
   res.status(200).json({
     message: "event routes are working"
@@ -54,6 +52,5 @@ router.delete(
   authorize("ORGANISER"),
   deleteEvent
 );
-
 
 export default router;

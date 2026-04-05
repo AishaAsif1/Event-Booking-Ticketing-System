@@ -224,6 +224,15 @@ export const createBookingForUser = async (
         message: "Quantity must be a number greater than 0"
       });
     }
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!userExists) {
+      return res.status(404).json({
+        message: `User with ID ${userId} does not exist`
+      });
+    } //Source: ChatGPT
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
