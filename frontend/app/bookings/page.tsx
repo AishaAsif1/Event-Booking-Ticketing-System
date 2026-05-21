@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -19,7 +20,7 @@ type ApiBooking = {
   event: {
     title: string;
     eventDate: string;
-    venue: { name: string };
+    venue?: { name: string } | null;
   };
 };
 
@@ -60,39 +61,63 @@ export default function BookingsPage() {
     fetchBookings();
   }, [user, authLoading, router]);
 
+  const totalTickets = bookings.reduce(
+    (total, booking) => total + booking.quantity,
+    0
+  );
+
   if (authLoading || (!user && !errorMessage)) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center bg-gray-50">
         <LoadingSpinner />
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <section className="mx-auto max-w-5xl">
-        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">
-              My Bookings
-            </h1>
-            <p className="mt-2 text-gray-600">
-              View your booked events and manage tickets.
-            </p>
+    <main className="min-h-screen bg-gray-50">
+      <section className="bg-gradient-to-br from-blue-50 via-white to-purple-50 px-6 py-16">
+        <div className="mx-auto max-w-7xl text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 md:text-6xl">
+            My Bookings
+          </h1>
+
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-gray-600">
+            View your booked events, ticket quantities, and booking status in
+            one place.
+          </p>
+
+          <div className="mx-auto mt-8 grid max-w-xl gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl bg-white/80 p-5 shadow-sm">
+              <p className="text-3xl font-extrabold text-gray-900">
+                {bookings.length}
+              </p>
+              <p className="text-sm font-medium text-gray-600">Bookings</p>
+            </div>
+
+            <div className="rounded-3xl bg-white/80 p-5 shadow-sm">
+              <p className="text-3xl font-extrabold text-gray-900">
+                {totalTickets}
+              </p>
+              <p className="text-sm font-medium text-gray-600">Tickets</p>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link href="/events">
               <Button>Browse Events</Button>
             </Link>
+
             <Link href="/">
               <Button variant="secondary">Back Home</Button>
             </Link>
           </div>
         </div>
+      </section>
 
+      <section className="mx-auto max-w-5xl px-6 py-14">
         {isLoading && (
-          <div className="rounded-2xl bg-white p-8 shadow-md">
+          <div className="rounded-3xl bg-white p-10 shadow-md">
             <LoadingSpinner />
             <p className="mt-4 text-center text-gray-600">
               Loading your bookings...
@@ -105,11 +130,16 @@ export default function BookingsPage() {
         )}
 
         {!isLoading && !errorMessage && bookings.length === 0 && (
-          <div className="rounded-2xl bg-white p-8 text-center shadow-md">
-            <h2 className="text-xl font-bold text-gray-900">No bookings yet</h2>
-            <p className="mt-2 text-gray-600">
-              Browse events and book your first ticket.
+          <div className="rounded-3xl bg-white p-10 text-center shadow-md">
+            <h2 className="text-2xl font-extrabold text-gray-900">
+              No bookings yet
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-md text-gray-600">
+              You have not booked any events yet. Browse available events and
+              reserve your first ticket.
             </p>
+
             <div className="mt-6">
               <Link href="/events">
                 <Button>Browse Events</Button>
@@ -119,7 +149,7 @@ export default function BookingsPage() {
         )}
 
         {!isLoading && !errorMessage && bookings.length > 0 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {bookings.map((booking) => (
               <BookingCard
                 key={booking.id}
