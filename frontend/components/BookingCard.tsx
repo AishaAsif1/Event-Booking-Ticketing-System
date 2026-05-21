@@ -1,25 +1,74 @@
+"use client";
+
+import { useState } from "react";
+import Button from "./ui/Button";
+import AlertMessage from "./ui/AlertMessage";
+import LoadingSpinner from "./ui/LoadingSpinner";
+import { apiFetch } from "../lib/api";
+
 type BookingCardProps = {
+  eventId: string;
   eventTitle: string;
   venue: string;
   date: string;
   quantity: number;
-  totalPrice: number;
-  status: "CONFIRMED" | "PENDING" | "CANCELLED";
+  status: "CONFIRMED" | "CANCELLED";
+  onCancelled?: () => void;
 };
 
 export default function BookingCard({
+  eventId,
   eventTitle,
   venue,
   date,
   quantity,
-  totalPrice,
-  status,
+  status: initialStatus,
+  onCancelled,
 }: BookingCardProps) {
+  const [status, setStatus] = useState(initialStatus);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error">("error");
+
+  const formattedDate = new Date(date).toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
   const statusClasses = {
     CONFIRMED: "bg-green-50 text-green-700",
-    PENDING: "bg-yellow-50 text-yellow-700",
     CANCELLED: "bg-red-50 text-red-700",
   };
+
+  async function handleCancel() {
+    setFeedback("");
+    setIsCancelling(true);
+
+    try {
+      const res = await apiFetch(`/bookings/${eventId}/cancel`, {
+        method: "PATCH",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedbackType("error");
+        setFeedback(data.message || "Could not cancel booking.");
+        return;
+      }
+
+      setStatus("CANCELLED");
+      setFeedbackType("success");
+      setFeedback("Booking cancelled.");
+      onCancelled?.();
+    } catch {
+      setFeedbackType("error");
+      setFeedback("Could not reach the server.");
+    } finally {
+      setIsCancelling(false);
+    }
+  }
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-md">
@@ -36,11 +85,11 @@ export default function BookingCard({
         </span>
       </div>
 
-      <div className="mt-5 grid gap-4 text-sm text-gray-700 sm:grid-cols-3">
+      <div className="mt-5 grid gap-4 text-sm text-gray-700 sm:grid-cols-2">
         <p>
           <span className="font-medium">Date:</span>
           <br />
-          {date}
+          {formattedDate}
         </p>
 
         <p>
@@ -48,12 +97,25 @@ export default function BookingCard({
           <br />
           {quantity}
         </p>
-
-        <p>
-          <span className="font-medium">Total:</span>
-          <br />${totalPrice}
-        </p>
       </div>
+
+      {feedback && (
+        <div className="mt-4">
+          <AlertMessage type={feedbackType} message={feedback} />
+        </div>
+      )}
+
+      {status === "CONFIRMED" && (
+        <div className="mt-5">
+          <Button
+            variant="secondary"
+            disabled={isCancelling}
+            onClick={handleCancel}
+          >
+            {isCancelling ? <LoadingSpinner /> : "Cancel Booking"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

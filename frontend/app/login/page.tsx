@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import AlertMessage from "../../components/ui/AlertMessage";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "../../lib/api";
 
 type LoginFormData = {
   email: string;
@@ -17,6 +21,9 @@ type LoginErrors = {
 };
 
 export default function LoginPage() {
+  const { login } = useAuth();
+  const router = useRouter();
+
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
@@ -25,22 +32,12 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<LoginErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">(
-    "info"
-  );
+  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">("info");
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
-
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-
-    setErrors({
-      ...errors,
-      [name]: "",
-    });
+    setFormData({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: "" });
   }
 
   function validateForm() {
@@ -54,22 +51,17 @@ export default function LoginPage() {
 
     if (!formData.password.trim()) {
       newErrors.password = "Password is required.";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters.";
     }
 
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFeedbackMessage("");
 
-    const isValid = validateForm();
-
-    if (!isValid) {
+    if (!validateForm()) {
       setFeedbackType("error");
       setFeedbackMessage("Please fix the errors before submitting.");
       return;
@@ -77,13 +69,28 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const res = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedbackType("error");
+        setFeedbackMessage(data.message || "Login failed. Please try again.");
+        return;
+      }
+
+      login(data.token, data.user);
+      router.push("/events");
+    } catch {
+      setFeedbackType("error");
+      setFeedbackMessage("Could not reach the server. Is the backend running?");
+    } finally {
       setIsLoading(false);
-      setFeedbackType("success");
-      setFeedbackMessage(
-        "Login form submitted successfully. API connection will be added later."
-      );
-    }, 1000);
+    }
   }
 
   return (
@@ -126,6 +133,13 @@ export default function LoginPage() {
               {isLoading ? <LoadingSpinner /> : "Login"}
             </Button>
           </form>
+
+          <p className="mt-6 text-center text-sm text-gray-600">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="font-medium text-blue-600">
+              Register
+            </Link>
+          </p>
         </div>
       </section>
     </main>

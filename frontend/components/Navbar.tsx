@@ -1,10 +1,21 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "./ui/Button";
-import { currentUser } from "../data/userRole";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
-  const isOrganiser = currentUser.role === "ORGANISER";
-  const isAttendee = currentUser.role === "ATTENDEE";
+  const { user, isLoading, logout } = useAuth();
+  const router = useRouter();
+
+  const isOrganiser = user?.role === "ORGANISER";
+  const isAttendee = user?.role === "ATTENDEE";
+
+  function handleLogout() {
+    logout();
+    router.push("/login");
+  }
 
   return (
     <header className="border-b border-gray-200 bg-white">
@@ -14,12 +25,12 @@ export default function Navbar() {
             Event Booking
           </Link>
 
-          <p className="mt-1 text-xs text-gray-500">
-            Demo role:{" "}
-            <span className="font-semibold text-blue-600">
-              {currentUser.role}
-            </span>
-          </p>
+          {!isLoading && user && (
+            <p className="mt-1 text-xs text-gray-500">
+              {user.fullName} &middot;{" "}
+              <span className="font-semibold text-blue-600">{user.role}</span>
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -48,13 +59,22 @@ export default function Navbar() {
             </Link>
           )}
 
-          <Link href="/login">
-            <Button variant="secondary">Login</Button>
-          </Link>
+          {!isLoading && !user && (
+            <>
+              <Link href="/login">
+                <Button variant="secondary">Login</Button>
+              </Link>
+              <Link href="/register">
+                <Button>Register</Button>
+              </Link>
+            </>
+          )}
 
-          <Link href="/register">
-            <Button>Register</Button>
-          </Link>
+          {!isLoading && user && (
+            <Button variant="secondary" onClick={handleLogout}>
+              Logout
+            </Button>
+          )}
         </div>
       </nav>
     </header>

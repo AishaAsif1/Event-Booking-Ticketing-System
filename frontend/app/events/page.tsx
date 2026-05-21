@@ -3,24 +3,51 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import EventCard from "../../components/EventCard";
-import { events } from "../../data/events";
-import { currentUser } from "../../data/userRole";
+import { useAuth } from "../../context/AuthContext";
 import Button from "../../components/ui/Button";
 import AlertMessage from "../../components/ui/AlertMessage";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { apiFetch } from "../../lib/api";
+
+type ApiEvent = {
+  id: string;
+  title: string;
+  description: string;
+  eventDate: string;
+  capacity: number;
+  status: "DRAFT" | "PUBLISHED" | "CANCELLED";
+  category: { id: string; name: string };
+  venue: { id: string; name: string };
+};
 
 export default function EventsPage() {
-  const isOrganiser = currentUser.role === "ORGANISER";
+  const { user } = useAuth();
+  const isOrganiser = user?.role === "ORGANISER";
 
+  const [events, setEvents] = useState<ApiEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 700);
+    async function fetchEvents() {
+      try {
+        const res = await apiFetch("/events?limit=50");
+        const data = await res.json();
 
-    return () => clearTimeout(timer);
+        if (!res.ok) {
+          setErrorMessage(data.message || "Failed to load events.");
+          return;
+        }
+
+        setEvents(data.data ?? []);
+      } catch {
+        setErrorMessage("Could not reach the server. Is the backend running?");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchEvents();
   }, []);
 
   return (
@@ -31,7 +58,6 @@ export default function EventsPage() {
             <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">
               Browse Events
             </h1>
-
             <p className="mt-2 text-gray-600">
               Explore available events and book your tickets.
             </p>
@@ -77,12 +103,12 @@ export default function EventsPage() {
             {events.map((event) => (
               <EventCard
                 key={event.id}
+                id={event.id}
                 title={event.title}
                 description={event.description}
-                category={event.category}
-                venue={event.venue}
-                date={event.date}
-                price={event.price}
+                category={event.category?.name ?? "Uncategorised"}
+                venue={event.venue?.name ?? "Unknown Venue"}
+                date={event.eventDate}
                 capacity={event.capacity}
                 status={event.status}
               />

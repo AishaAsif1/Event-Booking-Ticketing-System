@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import AlertMessage from "../../components/ui/AlertMessage";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import { apiFetch } from "../../lib/api";
 
 type RegisterFormData = {
   name: string;
@@ -24,6 +26,8 @@ type RegisterErrors = {
 };
 
 export default function RegisterPage() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState<RegisterFormData>({
     name: "",
     email: "",
@@ -35,24 +39,14 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<RegisterErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">(
-    "info"
-  );
+  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">("info");
 
   function handleChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
     const { name, value } = event.target;
-
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-
-    setErrors({
-      ...errors,
-      [name]: "",
-    });
+    setFormData({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: "" });
   }
 
   function validateForm() {
@@ -72,8 +66,10 @@ export default function RegisterPage() {
 
     if (!formData.password.trim()) {
       newErrors.password = "Password is required.";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters.";
+    } else if (formData.password.length < 12) {
+      newErrors.password = "Password must be at least 12 characters.";
+    } else if (formData.password.length > 64) {
+      newErrors.password = "Password must be at most 64 characters.";
     }
 
     if (!formData.confirmPassword.trim()) {
@@ -82,22 +78,15 @@ export default function RegisterPage() {
       newErrors.confirmPassword = "Passwords do not match.";
     }
 
-    if (!formData.role) {
-      newErrors.role = "Role is required.";
-    }
-
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFeedbackMessage("");
 
-    const isValid = validateForm();
-
-    if (!isValid) {
+    if (!validateForm()) {
       setFeedbackType("error");
       setFeedbackMessage("Please fix the errors before submitting.");
       return;
@@ -105,13 +94,35 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          fullName: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedbackType("error");
+        setFeedbackMessage(data.message || "Registration failed. Please try again.");
+        return;
+      }
+
       setFeedbackType("success");
-      setFeedbackMessage(
-        "Registration form submitted successfully. API connection will be added later."
-      );
-    }, 1000);
+      setFeedbackMessage("Account created successfully! Redirecting to login...");
+
+      setTimeout(() => router.push("/login"), 1500);
+    } catch {
+      setFeedbackType("error");
+      setFeedbackMessage("Could not reach the server. Is the backend running?");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -119,9 +130,7 @@ export default function RegisterPage() {
       <section className="mx-auto flex min-h-[80vh] max-w-6xl items-center justify-center">
         <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-md">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Create Account
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
             <p className="mt-2 text-gray-600">
               Register as an attendee or organiser.
             </p>

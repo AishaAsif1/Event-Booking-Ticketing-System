@@ -1,49 +1,89 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Button from "./ui/Button";
 import AlertMessage from "./ui/AlertMessage";
 import LoadingSpinner from "./ui/LoadingSpinner";
-import { currentUser } from "../data/userRole";
+import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../lib/api";
 
 type EventCardProps = {
+  id: string;
   title: string;
   description: string;
   category: string;
   venue: string;
   date: string;
-  price: number;
   capacity: number;
-  status: "DRAFT" | "PUBLISHED";
+  status: "DRAFT" | "PUBLISHED" | "CANCELLED";
 };
 
 export default function EventCard({
+  id,
   title,
   description,
   category,
   venue,
   date,
-  price,
   capacity,
   status,
 }: EventCardProps) {
-  const isOrganiser = currentUser.role === "ORGANISER";
-  const isAttendee = currentUser.role === "ATTENDEE";
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const isOrganiser = user?.role === "ORGANISER";
+  const isAttendee = user?.role === "ATTENDEE";
 
   const [isBooking, setIsBooking] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error">("success");
 
-  function handleBookTicket() {
+  const formattedDate = new Date(date).toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  async function handleBookTicket() {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
     setFeedbackMessage("");
     setIsBooking(true);
 
-    setTimeout(() => {
+    try {
+      const res = await apiFetch("/bookings", {
+        method: "POST",
+        body: JSON.stringify({ eventId: id, quantity: 1 }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedbackType("error");
+        setFeedbackMessage(data.message || "Booking failed.");
+        return;
+      }
+
+      setFeedbackType("success");
+      setFeedbackMessage("Ticket booked successfully!");
+    } catch {
+      setFeedbackType("error");
+      setFeedbackMessage("Could not reach the server.");
+    } finally {
       setIsBooking(false);
-      setFeedbackMessage(
-        "Ticket booked successfully. API connection will be added later."
-      );
-    }, 800);
+    }
   }
+
+  const statusColour =
+    status === "PUBLISHED"
+      ? "bg-green-50 text-green-700"
+      : status === "CANCELLED"
+        ? "bg-red-50 text-red-700"
+        : "bg-yellow-50 text-yellow-700";
 
   return (
     <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-md transition hover:shadow-lg">
@@ -52,44 +92,30 @@ export default function EventCard({
           {category}
         </span>
 
-        <span
-          className={`rounded-full px-3 py-1 text-sm font-medium ${
-            status === "PUBLISHED"
-              ? "bg-green-50 text-green-700"
-              : "bg-yellow-50 text-yellow-700"
-          }`}
-        >
+        <span className={`rounded-full px-3 py-1 text-sm font-medium ${statusColour}`}>
           {status}
         </span>
       </div>
 
       <h2 className="text-xl font-bold text-gray-900">{title}</h2>
 
-      <p className="mt-3 flex-1 text-sm leading-6 text-gray-600">
-        {description}
-      </p>
+      <p className="mt-3 flex-1 text-sm leading-6 text-gray-600">{description}</p>
 
       <div className="mt-5 space-y-2 text-sm text-gray-700">
         <p>
           <span className="font-medium">Venue:</span> {venue}
         </p>
-
         <p>
-          <span className="font-medium">Date:</span> {date}
+          <span className="font-medium">Date:</span> {formattedDate}
         </p>
-
         <p>
           <span className="font-medium">Capacity:</span> {capacity}
-        </p>
-
-        <p>
-          <span className="font-medium">Price:</span> ${price}
         </p>
       </div>
 
       {feedbackMessage && (
         <div className="mt-5">
-          <AlertMessage type="success" message={feedbackMessage} />
+          <AlertMessage type={feedbackType} message={feedbackMessage} />
         </div>
       )}
 
@@ -107,6 +133,12 @@ export default function EventCard({
             ) : (
               "Not Available"
             )}
+          </Button>
+        )}
+
+        {!user && status === "PUBLISHED" && (
+          <Button fullWidth variant="secondary" onClick={() => router.push("/login")}>
+            Login to Book
           </Button>
         )}
 

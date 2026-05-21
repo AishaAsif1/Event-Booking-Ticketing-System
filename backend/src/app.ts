@@ -19,9 +19,9 @@ const globalLimiter = rateLimit({
   max: 20, // Limit each IP to 20 requests per window
   message: { message: "Too many requests from this IP, please try again later." }
 });
+app.use(cors());
 app.use(globalLimiter);
 app.use(helmet());
-app.use(cors());
 app.use(express.json());
 
 app.get("/", (_req, res) => {
