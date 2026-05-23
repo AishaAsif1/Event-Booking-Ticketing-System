@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Button from "./ui/Button";
 import AlertMessage from "./ui/AlertMessage";
 import LoadingSpinner from "./ui/LoadingSpinner";
 import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../lib/api";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
 
@@ -57,7 +59,7 @@ function getEventImage({
   const titleKey = normalizeText(title);
   const categoryKey = normalizeText(category);
 
-  // Title-based checks first, because backend category may be wrong
+  // Title-based checks first, because backend category may not always be accurate.
   if (
     titleKey.includes("security") ||
     titleKey.includes("cyber") ||
@@ -115,7 +117,7 @@ function getEventImage({
     return "/event-images/education.jpg";
   }
 
-  // Category-based fallback
+  // Category-based fallback.
   if (categoryImages[categoryKey]) {
     return categoryImages[categoryKey];
   }
@@ -135,19 +137,25 @@ export default function EventCard({
   price,
   image,
 }: EventCardProps) {
+  const router = useRouter();
   const { user } = useAuth();
 
   const isOrganiser = user?.role === "ORGANISER";
-  const isAttendee = user?.role === "ATTENDEE" || !user;
+  const isAttendee = user?.role === "ATTENDEE";
+  const isLoggedOut = !user;
 
   const [isBooking, setIsBooking] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">(
+    "info"
+  );
 
-const cardImage = getEventImage({
-  image,
-  category,
-  title,
-});
+  const cardImage = getEventImage({
+    image,
+    category,
+    title,
+  });
+
   const formattedDate = new Date(date).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -159,16 +167,59 @@ const cardImage = getEventImage({
     CANCELLED: "bg-red-100 text-red-700",
   };
 
-  function handleBookTicket() {
+  async function handleBookTicket() {
     setFeedbackMessage("");
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    if (user.role !== "ATTENDEE") {
+      setFeedbackType("error");
+      setFeedbackMessage("Only attendees can book tickets.");
+      return;
+    }
+
+    if (status !== "PUBLISHED") {
+      setFeedbackType("error");
+      setFeedbackMessage("Only published events can be booked.");
+      return;
+    }
+
     setIsBooking(true);
 
-    setTimeout(() => {
-      setIsBooking(false);
+    try {
+      const res = await apiFetch("/bookings", {
+        method: "POST",
+        body: JSON.stringify({
+          eventId: id,
+          quantity: 1,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedbackType("error");
+        setFeedbackMessage(data.message || "Failed to book ticket.");
+        return;
+      }
+
+      setFeedbackType("success");
       setFeedbackMessage(
-        "Ticket booking request is ready. API booking connection can be handled here."
+        "Ticket booked successfully! Redirecting to your bookings..."
       );
-    }, 800);
+
+      setTimeout(() => {
+        router.push("/bookings");
+      }, 1000);
+    } catch {
+      setFeedbackType("error");
+      setFeedbackMessage("Could not reach the server. Is the backend running?");
+    } finally {
+      setIsBooking(false);
+    }
   }
 
   return (
@@ -235,12 +286,12 @@ const cardImage = getEventImage({
 
         {feedbackMessage && (
           <div className="mt-5">
-            <AlertMessage type="success" message={feedbackMessage} />
+            <AlertMessage type={feedbackType} message={feedbackMessage} />
           </div>
         )}
 
         <div className="mt-6">
-          {isAttendee && (
+          {(isAttendee || isLoggedOut) && (
             <Button
               fullWidth
               disabled={status !== "PUBLISHED" || isBooking}
@@ -248,6 +299,8 @@ const cardImage = getEventImage({
             >
               {isBooking ? (
                 <LoadingSpinner />
+              ) : isLoggedOut ? (
+                "Login to Book"
               ) : status === "PUBLISHED" ? (
                 "Book Ticket"
               ) : (
