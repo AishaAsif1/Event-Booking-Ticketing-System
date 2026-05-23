@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "./ui/Button";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   const isOrganiser = user?.role === "ORGANISER";
   const isAttendee = user?.role === "ATTENDEE";
+
+  function handleLogout() {
+    logout();
+    router.push("/login");
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 shadow-sm backdrop-blur">
@@ -57,9 +64,15 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           {user ? (
-            <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-              {user.role}
-            </div>
+            <>
+              <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                {user.role}
+              </div>
+
+              <Button variant="secondary" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
           ) : (
             <>
               <Link href="/login">
@@ -80,6 +93,15 @@ export default function Navbar() {
           >
             Events
           </Link>
+
+          {user && (
+            <button
+              onClick={handleLogout}
+              className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </nav>
     </header>
