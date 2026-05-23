@@ -1,5 +1,4 @@
 services:
-  # 1. Database Service
   postgres-db:
     image: postgres:15-alpine
     container_name: booking-postgres
@@ -12,11 +11,10 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  # 2. Backend Service
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: backend/Dockerfile
       target: backend-env
     container_name: booking-backend
     ports:
@@ -31,11 +29,10 @@ services:
     depends_on:
       - postgres-db
 
-  # 3. Frontend Service
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: frontend/Dockerfile
       target: frontend-env
     container_name: booking-frontend
     ports:
@@ -51,5 +48,3 @@ services:
 
 volumes:
   pgdata:
-
-# Source: Gemini
