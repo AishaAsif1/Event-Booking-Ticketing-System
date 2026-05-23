@@ -23,6 +23,11 @@ router.get("/test", (_req, res) => {
 
 router.get("/", getAllEvents);
 
+/*
+  Important:
+  /my must come before /:eventId.
+  Otherwise Express treats "my" as an eventId.
+*/
 router.get(
   "/my",
   authenticate,

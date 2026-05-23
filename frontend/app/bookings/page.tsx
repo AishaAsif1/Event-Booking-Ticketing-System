@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BookingCard from "../../components/BookingCard";
@@ -30,7 +29,36 @@ export default function BookingsPage() {
 
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [cancellingEventId, setCancellingEventId] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">(
+    "info"
+  );
+
+  const fetchBookings = useCallback(async () => {
+    setIsLoading(true);
+    setFeedbackMessage("");
+
+    try {
+      const res = await apiFetch("/bookings/my");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedbackType("error");
+        setFeedbackMessage(data.message || "Failed to load bookings.");
+        setBookings([]);
+        return;
+      }
+
+      setBookings(data.bookings ?? []);
+    } catch {
+      setFeedbackType("error");
+      setFeedbackMessage("Could not reach the server. Is the backend running?");
+      setBookings([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -40,33 +68,58 @@ export default function BookingsPage() {
       return;
     }
 
-    async function fetchBookings() {
-      try {
-        const res = await apiFetch("/bookings/my");
-        const data = await res.json();
-
-        if (!res.ok) {
-          setErrorMessage(data.message || "Failed to load bookings.");
-          return;
-        }
-
-        setBookings(data.bookings ?? []);
-      } catch {
-        setErrorMessage("Could not reach the server. Is the backend running?");
-      } finally {
-        setIsLoading(false);
-      }
+    if (user.role !== "ATTENDEE") {
+      router.push("/events");
+      return;
     }
 
     fetchBookings();
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, fetchBookings]);
 
-  const totalTickets = bookings.reduce(
+  async function handleCancelBooking(eventId: string) {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this booking?"
+    );
+
+    if (!confirmed) return;
+
+    setCancellingEventId(eventId);
+    setFeedbackMessage("");
+
+    try {
+      const res = await apiFetch(`/bookings/${eventId}/cancel`, {
+        method: "PATCH",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedbackType("error");
+        setFeedbackMessage(data.message || "Failed to cancel booking.");
+        return;
+      }
+
+      setFeedbackType("success");
+      setFeedbackMessage("Booking cancelled successfully.");
+      await fetchBookings();
+    } catch {
+      setFeedbackType("error");
+      setFeedbackMessage("Could not reach the server. Is the backend running?");
+    } finally {
+      setCancellingEventId("");
+    }
+  }
+
+  const activeBookings = bookings.filter(
+    (booking) => booking.bookingStatus === "CONFIRMED"
+  );
+
+  const totalTickets = activeBookings.reduce(
     (total, booking) => total + booking.quantity,
     0
   );
 
-  if (authLoading || (!user && !errorMessage)) {
+  if (authLoading || (!user && !feedbackMessage)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-50">
         <LoadingSpinner />
@@ -90,16 +143,20 @@ export default function BookingsPage() {
           <div className="mx-auto mt-8 grid max-w-xl gap-4 sm:grid-cols-2">
             <div className="rounded-3xl bg-white/80 p-5 shadow-sm">
               <p className="text-3xl font-extrabold text-gray-900">
-                {bookings.length}
+                {activeBookings.length}
               </p>
-              <p className="text-sm font-medium text-gray-600">Bookings</p>
+              <p className="text-sm font-medium text-gray-600">
+                Active Bookings
+              </p>
             </div>
 
             <div className="rounded-3xl bg-white/80 p-5 shadow-sm">
               <p className="text-3xl font-extrabold text-gray-900">
                 {totalTickets}
               </p>
-              <p className="text-sm font-medium text-gray-600">Tickets</p>
+              <p className="text-sm font-medium text-gray-600">
+                Active Tickets
+              </p>
             </div>
           </div>
 
@@ -116,6 +173,12 @@ export default function BookingsPage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-6 py-14">
+        {feedbackMessage && (
+          <div className="mb-6">
+            <AlertMessage type={feedbackType} message={feedbackMessage} />
+          </div>
+        )}
+
         {isLoading && (
           <div className="rounded-3xl bg-white p-10 shadow-md">
             <LoadingSpinner />
@@ -125,11 +188,7 @@ export default function BookingsPage() {
           </div>
         )}
 
-        {!isLoading && errorMessage && (
-          <AlertMessage type="error" message={errorMessage} />
-        )}
-
-        {!isLoading && !errorMessage && bookings.length === 0 && (
+        {!isLoading && bookings.length === 0 && (
           <div className="rounded-3xl bg-white p-10 text-center shadow-md">
             <h2 className="text-2xl font-extrabold text-gray-900">
               No bookings yet
@@ -148,7 +207,7 @@ export default function BookingsPage() {
           </div>
         )}
 
-        {!isLoading && !errorMessage && bookings.length > 0 && (
+        {!isLoading && bookings.length > 0 && (
           <div className="space-y-6">
             {bookings.map((booking) => (
               <BookingCard
@@ -159,6 +218,8 @@ export default function BookingsPage() {
                 date={booking.event.eventDate}
                 quantity={booking.quantity}
                 status={booking.bookingStatus}
+                isCancelling={cancellingEventId === booking.eventId}
+                onCancel={() => handleCancelBooking(booking.eventId)}
               />
             ))}
           </div>

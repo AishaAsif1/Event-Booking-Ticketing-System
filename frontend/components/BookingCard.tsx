@@ -1,3 +1,8 @@
+import Button from "./ui/Button";
+import LoadingSpinner from "./ui/LoadingSpinner";
+
+type BookingStatus = "CONFIRMED" | "PENDING" | "CANCELLED";
+
 type BookingCardProps = {
   eventId?: string;
   eventTitle: string;
@@ -5,7 +10,9 @@ type BookingCardProps = {
   date: string;
   quantity: number;
   totalPrice?: number;
-  status: "CONFIRMED" | "PENDING" | "CANCELLED";
+  status: BookingStatus;
+  isCancelling?: boolean;
+  onCancel?: () => void;
 };
 
 export default function BookingCard({
@@ -16,6 +23,8 @@ export default function BookingCard({
   quantity,
   totalPrice,
   status,
+  isCancelling = false,
+  onCancel,
 }: BookingCardProps) {
   const statusClasses = {
     CONFIRMED: "bg-green-100 text-green-700",
@@ -28,6 +37,8 @@ export default function BookingCard({
     day: "numeric",
     year: "numeric",
   });
+
+  const canCancel = status === "CONFIRMED" && Boolean(onCancel);
 
   return (
     <div className="rounded-3xl bg-white p-6 shadow-md transition hover:-translate-y-1 hover:shadow-xl">
@@ -74,6 +85,20 @@ export default function BookingCard({
           </p>
         </div>
       </div>
+
+      {canCancel && (
+        <div className="mt-6 flex justify-end">
+          <Button variant="secondary" disabled={isCancelling} onClick={onCancel}>
+            {isCancelling ? <LoadingSpinner /> : "Cancel Booking"}
+          </Button>
+        </div>
+      )}
+
+      {status === "CANCELLED" && (
+        <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          This booking has been cancelled.
+        </p>
+      )}
     </div>
   );
 }
