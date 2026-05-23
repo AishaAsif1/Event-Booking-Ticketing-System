@@ -1,5 +1,41 @@
+# Dependencies
+node_modules
 **/node_modules
+
+# Build outputs
+dist
 **/dist
-**.env
-**.git
-**.next
+.next
+**/.next
+out
+**/out
+build
+**/build
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Local/submission files
+Submission docs
+Submission docs/
+Submission docs.zip
+Submission docs (2).zip

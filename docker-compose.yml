@@ -19,13 +19,11 @@ services:
     container_name: booking-backend
     ports:
       - "5000:5000"
-    volumes:
-      - ./backend:/app/backend
-      - /app/backend/node_modules
     environment:
-      - DATABASE_URL=postgresql://myuser:mypassword@postgres-db:5432/event_booking_db?schema=public
-      - PORT=5000
-      - JWT_SECRET=your_mock_jwt_secret_here
+      DATABASE_URL: postgresql://myuser:mypassword@postgres-db:5432/event_booking_db?schema=public
+      PORT: 5000
+      JWT_SECRET: your_mock_jwt_secret_here
+      NODE_ENV: production
     depends_on:
       - postgres-db
 
@@ -34,15 +32,14 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       target: frontend-env
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api
     container_name: booking-frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app/frontend
-      - /app/frontend/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5000
-      - WATCHPACK_POLLING=true
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
     depends_on:
       - backend
 
