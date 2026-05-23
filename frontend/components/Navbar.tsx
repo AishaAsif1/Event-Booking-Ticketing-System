@@ -53,12 +53,21 @@ export default function Navbar() {
           )}
 
           {isOrganiser && (
-            <Link
-              href="/create-event"
-              className="text-sm font-semibold text-gray-700 transition hover:text-blue-600"
-            >
-              Create Event
-            </Link>
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm font-semibold text-gray-700 transition hover:text-blue-600"
+              >
+                Dashboard
+              </Link>
+
+              <Link
+                href="/create-event"
+                className="text-sm font-semibold text-gray-700 transition hover:text-blue-600"
+              >
+                Create Event
+              </Link>
+            </>
           )}
         </div>
 
@@ -93,6 +102,24 @@ export default function Navbar() {
           >
             Events
           </Link>
+
+          {isOrganiser && (
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700"
+            >
+              Dashboard
+            </Link>
+          )}
+
+          {isAttendee && (
+            <Link
+              href="/bookings"
+              className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700"
+            >
+              Bookings
+            </Link>
+          )}
 
           {user && (
             <button

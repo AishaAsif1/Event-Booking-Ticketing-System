@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import EventCard from "../../components/EventCard";
 import { useAuth } from "../../context/AuthContext";
@@ -9,72 +9,116 @@ import AlertMessage from "../../components/ui/AlertMessage";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import { apiFetch } from "../../lib/api";
 
+type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
+
 type ApiEvent = {
   id: string;
   title: string;
   description: string;
   eventDate: string;
   capacity: number;
-  status: "DRAFT" | "PUBLISHED" | "CANCELLED";
+  status: EventStatus;
   category?: { id: string; name: string } | null;
   venue?: { id: string; name: string } | null;
   price?: number;
 };
+
+type PaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+const EVENTS_PER_PAGE = 6;
 
 export default function EventsPage() {
   const { user } = useAuth();
   const isOrganiser = user?.role === "ORGANISER";
 
   const [events, setEvents] = useState<ApiEvent[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta>({
+    total: 0,
+    page: 1,
+    limit: EVENTS_PER_PAGE,
+    totalPages: 1,
+  });
+
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<"All" | EventStatus>(
+    "All"
+  );
+
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
 
   useEffect(() => {
     async function fetchEvents() {
+      setIsLoading(true);
+      setErrorMessage("");
+
       try {
-        const res = await apiFetch("/events?limit=50");
+        const query = new URLSearchParams({
+          page: String(page),
+          limit: String(EVENTS_PER_PAGE),
+          sortBy: "eventDate",
+          order: "asc",
+        });
+
+        if (appliedSearch) {
+          query.set("search", appliedSearch);
+        }
+
+        if (selectedStatus !== "All") {
+          query.set("status", selectedStatus);
+        }
+
+        const res = await apiFetch(`/events?${query.toString()}`);
         const data = await res.json();
 
         if (!res.ok) {
           setErrorMessage(data.message || "Failed to load events.");
+          setEvents([]);
           return;
         }
 
         setEvents(data.data ?? []);
+        setMeta(
+          data.meta ?? {
+            total: 0,
+            page,
+            limit: EVENTS_PER_PAGE,
+            totalPages: 1,
+          }
+        );
       } catch {
         setErrorMessage("Could not reach the server. Is the backend running?");
+        setEvents([]);
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchEvents();
-  }, []);
+  }, [page, appliedSearch, selectedStatus]);
 
-  const categories = useMemo(() => {
-    const uniqueCategories = events
-      .map((event) => event.category?.name)
-      .filter((category): category is string => Boolean(category));
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPage(1);
+    setAppliedSearch(searchTerm.trim());
+  }
 
-    return ["All", ...Array.from(new Set(uniqueCategories))];
-  }, [events]);
+  function clearFilters() {
+    setSearchTerm("");
+    setAppliedSearch("");
+    setSelectedStatus("All");
+    setPage(1);
+  }
 
-  const filteredEvents = events.filter((event) => {
-    const categoryName = event.category?.name ?? "Uncategorised";
-    const venueName = event.venue?.name ?? "Unknown Venue";
-
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venueName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      categoryName.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesCategory =
-      selectedCategory === "All" || categoryName === selectedCategory;
-
-    return matchesSearch && matchesCategory;
-  });
+  const hasPreviousPage = page > 1;
+  const hasNextPage = page < meta.totalPages;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -89,33 +133,46 @@ export default function EventsPage() {
             moments you do not want to miss.
           </p>
 
-          <div className="mx-auto mt-8 max-w-2xl">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="mx-auto mt-8 flex max-w-3xl flex-col gap-3 sm:flex-row"
+          >
             <input
               type="text"
-              placeholder="Search events, artists, or venues..."
+              placeholder="Search events by title or description..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-4 text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              className="flex-1 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
-          </div>
 
-          {categories.length > 1 && (
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                    selectedCategory === category
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-white text-gray-700 shadow-sm hover:bg-blue-50 hover:text-blue-700"
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          )}
+            <Button type="submit">Search</Button>
+          </form>
+
+          <div className="mx-auto mt-5 flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+            <select
+              value={selectedStatus}
+              onChange={(event) => {
+                setSelectedStatus(event.target.value as "All" | EventStatus);
+                setPage(1);
+              }}
+              className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            >
+              <option value="All">All statuses</option>
+              <option value="PUBLISHED">Published</option>
+              <option value="DRAFT">Draft</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+
+            {(appliedSearch || selectedStatus !== "All") && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-blue-50 hover:text-blue-700"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             {isOrganiser && (
@@ -143,21 +200,18 @@ export default function EventsPage() {
           <AlertMessage type="error" message={errorMessage} />
         )}
 
-        {!isLoading && !errorMessage && filteredEvents.length === 0 && (
+        {!isLoading && !errorMessage && events.length === 0 && (
           <div className="rounded-3xl bg-white p-10 text-center shadow-md">
             <h2 className="text-2xl font-extrabold text-gray-900">
               No events found
             </h2>
 
             <p className="mt-3 text-gray-600">
-              Try searching with another keyword or category.
+              Try searching with another keyword or changing the status filter.
             </p>
 
             <button
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedCategory("All");
-              }}
+              onClick={clearFilters}
               className="mt-6 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700"
             >
               Clear Filters
@@ -165,17 +219,23 @@ export default function EventsPage() {
           </div>
         )}
 
-        {!isLoading && !errorMessage && filteredEvents.length > 0 && (
+        {!isLoading && !errorMessage && events.length > 0 && (
           <>
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <p className="text-sm font-medium text-gray-600">
-                Showing {filteredEvents.length} event
-                {filteredEvents.length > 1 ? "s" : ""}
+                Showing page {meta.page} of {meta.totalPages} · {meta.total}{" "}
+                total event{meta.total === 1 ? "" : "s"}
+              </p>
+
+              <p className="text-sm font-medium text-gray-500">
+                {appliedSearch && <>Search: “{appliedSearch}”</>}
+                {appliedSearch && selectedStatus !== "All" && " · "}
+                {selectedStatus !== "All" && <>Status: {selectedStatus}</>}
               </p>
             </div>
 
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredEvents.map((event) => (
+              {events.map((event) => (
                 <EventCard
                   key={event.id}
                   id={event.id}
@@ -189,6 +249,27 @@ export default function EventsPage() {
                   price={event.price}
                 />
               ))}
+            </div>
+
+            <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-3xl bg-white p-5 shadow-md sm:flex-row">
+              <Button
+                variant="secondary"
+                disabled={!hasPreviousPage || isLoading}
+                onClick={() => setPage((currentPage) => currentPage - 1)}
+              >
+                Previous
+              </Button>
+
+              <p className="text-sm font-semibold text-gray-600">
+                Page {meta.page} of {meta.totalPages}
+              </p>
+
+              <Button
+                disabled={!hasNextPage || isLoading}
+                onClick={() => setPage((currentPage) => currentPage + 1)}
+              >
+                Next
+              </Button>
             </div>
           </>
         )}
