@@ -422,15 +422,54 @@ export const getUserEvents = async (
       include: {
         category: true,
         venue: true,
+        bookings: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            bookedAt: "desc",
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
+    const eventsWithStats = events.map((event) => {
+      const confirmedBookings = event.bookings.filter(
+        (booking) => booking.bookingStatus === "CONFIRMED"
+      );
+
+      const ticketsSold = confirmedBookings.reduce(
+        (sum, booking) => sum + booking.quantity,
+        0
+      );
+
+      return {
+        ...event,
+        ticketsSold,
+        attendees: confirmedBookings.map((booking) => ({
+          bookingId: booking.id,
+          attendeeId: booking.user.id,
+          fullName: booking.user.fullName,
+          email: booking.user.email,
+          quantity: booking.quantity,
+          bookedAt: booking.bookedAt,
+          bookingStatus: booking.bookingStatus,
+        })),
+      };
+    });
+
     return res.status(200).json({
       message: "Organizer events fetched successfully",
-      events,
+      events: eventsWithStats,
     });
   } catch (error) {
     console.error("GET MY EVENTS ERROR:", error);

@@ -11,6 +11,16 @@ import { apiFetch } from "../../lib/api";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
 
+type Attendee = {
+  bookingId: string;
+  attendeeId: string;
+  fullName: string;
+  email: string;
+  quantity: number;
+  bookedAt: string;
+  bookingStatus: "CONFIRMED" | "CANCELLED";
+};
+
 type OrganiserEvent = {
   id: string;
   title: string;
@@ -18,6 +28,8 @@ type OrganiserEvent = {
   eventDate: string;
   capacity: number;
   status: EventStatus;
+  ticketsSold?: number;
+  attendees?: Attendee[];
 };
 
 export default function DashboardPage() {
@@ -141,8 +153,19 @@ export default function DashboardPage() {
     const draft = events.filter((event) => event.status === "DRAFT").length;
     const cancelled = events.filter((event) => event.status === "CANCELLED").length;
     const totalCapacity = events.reduce((sum, event) => sum + event.capacity, 0);
+    const totalTicketsSold = events.reduce(
+      (sum, event) => sum + (event.ticketsSold ?? 0),
+      0
+    );
 
-    return { total, published, draft, cancelled, totalCapacity };
+    return {
+      total,
+      published,
+      draft,
+      cancelled,
+      totalCapacity,
+      totalTicketsSold,
+    };
   }, [events]);
 
   if (authLoading) {
@@ -168,8 +191,8 @@ export default function DashboardPage() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-lg leading-8 text-gray-600">
-                Manage your events, publish drafts, edit event details, and
-                track your event capacity from one place.
+                Manage your events, publish drafts, edit event details, track
+                tickets sold, and view attendee lists from one place.
               </p>
             </div>
 
@@ -184,7 +207,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
             <div className="rounded-3xl bg-white/80 p-5 shadow-sm">
               <p className="text-3xl font-extrabold text-gray-900">{stats.total}</p>
               <p className="text-sm font-medium text-gray-600">Total Events</p>
@@ -209,6 +232,13 @@ export default function DashboardPage() {
                 {stats.cancelled}
               </p>
               <p className="text-sm font-medium text-gray-600">Cancelled</p>
+            </div>
+
+            <div className="rounded-3xl bg-white/80 p-5 shadow-sm">
+              <p className="text-3xl font-extrabold text-blue-700">
+                {stats.totalTicketsSold}
+              </p>
+              <p className="text-sm font-medium text-gray-600">Tickets Sold</p>
             </div>
 
             <div className="rounded-3xl bg-white/80 p-5 shadow-sm">
@@ -262,7 +292,8 @@ export default function DashboardPage() {
                 My Events
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                Edit events, publish drafts, or delete events you no longer need.
+                Edit events, publish drafts, delete events, view tickets sold,
+                and check attendee lists.
               </p>
             </div>
 
@@ -283,60 +314,132 @@ export default function DashboardPage() {
                   CANCELLED: "bg-red-100 text-red-700",
                 };
 
-                return (
-                  <div
-                    key={event.id}
-                    className="flex flex-col justify-between gap-5 p-6 lg:flex-row lg:items-center"
-                  >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-xl font-extrabold text-gray-900">
-                          {event.title}
-                        </h3>
+                const attendees = event.attendees ?? [];
+                const ticketsSold = event.ticketsSold ?? 0;
 
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${statusClasses[event.status]}`}
-                        >
-                          {event.status}
-                        </span>
+                return (
+                  <div key={event.id} className="p-6">
+                    <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="text-xl font-extrabold text-gray-900">
+                            {event.title}
+                          </h3>
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${statusClasses[event.status]}`}
+                          >
+                            {event.status}
+                          </span>
+                        </div>
+
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                          {event.description}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-500">
+                          <span>Date: {formattedDate}</span>
+                          <span>Capacity: {event.capacity}</span>
+                          <span>Tickets Sold: {ticketsSold}</span>
+                          <span>ID: {event.id}</span>
+                        </div>
                       </div>
 
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                        {event.description}
-                      </p>
+                      <div className="flex flex-col gap-3 sm:flex-row">
+                        <Link href={`/edit-event/${event.id}`}>
+                          <Button variant="secondary">Edit</Button>
+                        </Link>
 
-                      <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-500">
-                        <span>Date: {formattedDate}</span>
-                        <span>Capacity: {event.capacity}</span>
-                        <span>ID: {event.id}</span>
+                        {event.status !== "PUBLISHED" && (
+                          <Button
+                            disabled={actionLoadingId === event.id}
+                            onClick={() => publishEvent(event.id)}
+                          >
+                            {actionLoadingId === event.id ? (
+                              <LoadingSpinner />
+                            ) : (
+                              "Publish"
+                            )}
+                          </Button>
+                        )}
+
+                        <Button
+                          variant="secondary"
+                          disabled={actionLoadingId === event.id}
+                          onClick={() => deleteEvent(event.id)}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <Link href={`/edit-event/${event.id}`}>
-                        <Button variant="secondary">Edit</Button>
-                      </Link>
+                    <div className="mt-6 rounded-2xl bg-gray-50 p-5">
+                      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                        <h4 className="text-sm font-extrabold uppercase tracking-wide text-gray-700">
+                          Attendee List
+                        </h4>
 
-                      {event.status !== "PUBLISHED" && (
-                        <Button
-                          disabled={actionLoadingId === event.id}
-                          onClick={() => publishEvent(event.id)}
-                        >
-                          {actionLoadingId === event.id ? (
-                            <LoadingSpinner />
-                          ) : (
-                            "Publish"
-                          )}
-                        </Button>
+                        <p className="text-sm font-semibold text-blue-700">
+                          {ticketsSold} ticket{ticketsSold === 1 ? "" : "s"} sold
+                        </p>
+                      </div>
+
+                      {attendees.length === 0 ? (
+                        <p className="mt-4 text-sm text-gray-500">
+                          No attendees have booked this event yet.
+                        </p>
+                      ) : (
+                        <div className="mt-4 overflow-x-auto">
+                          <table className="w-full min-w-[650px] text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
+                                <th className="py-3 pr-4">Attendee</th>
+                                <th className="py-3 pr-4">Email</th>
+                                <th className="py-3 pr-4">Tickets</th>
+                                <th className="py-3 pr-4">Booked At</th>
+                                <th className="py-3 pr-4">Status</th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {attendees.map((attendee) => {
+                                const bookedDate = new Date(
+                                  attendee.bookedAt
+                                ).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                });
+
+                                return (
+                                  <tr
+                                    key={attendee.bookingId}
+                                    className="border-b border-gray-100 last:border-0"
+                                  >
+                                    <td className="py-3 pr-4 font-semibold text-gray-900">
+                                      {attendee.fullName}
+                                    </td>
+                                    <td className="py-3 pr-4 text-gray-600">
+                                      {attendee.email}
+                                    </td>
+                                    <td className="py-3 pr-4 text-gray-600">
+                                      {attendee.quantity}
+                                    </td>
+                                    <td className="py-3 pr-4 text-gray-600">
+                                      {bookedDate}
+                                    </td>
+                                    <td className="py-3 pr-4">
+                                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                                        {attendee.bookingStatus}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       )}
-
-                      <Button
-                        variant="secondary"
-                        disabled={actionLoadingId === event.id}
-                        onClick={() => deleteEvent(event.id)}
-                      >
-                        Delete
-                      </Button>
                     </div>
                   </div>
                 );
