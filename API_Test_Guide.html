@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Booking API — Postman Test Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; }
+
+  /* ── Cover page ── */
+  .cover {
+    height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);
+    color: #fff; page-break-after: always;
+  }
+  .cover h1 { font-size: 32px; margin-bottom: 12px; letter-spacing: 1px; }
+  .cover .sub { font-size: 16px; opacity: 0.85; margin-bottom: 8px; }
+  .cover .date { font-size: 13px; opacity: 0.65; margin-top: 20px; }
+  .cover .base { background: rgba(255,255,255,0.15); padding: 10px 24px; border-radius: 6px; margin-top: 24px; font-size: 15px; letter-spacing: 0.5px; }
+
+  /* ── Layout ── */
+  .page { padding: 28px 36px; }
+  h2 { font-size: 18px; color: #1e3a5f; border-bottom: 2px solid #2d6a9f; padding-bottom: 6px; margin: 24px 0 14px; }
+  h3 { font-size: 14px; color: #2d6a9f; margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
+  h3 .num { background: #2d6a9f; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+
+  /* ── Step box ── */
+  .step-grid { display: grid; gap: 10px; }
+  .step { background: #f5f8fc; border: 1px solid #d0dff0; border-radius: 6px; padding: 12px 14px; }
+  .step .method-url { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+  .GET    { background: #e6f4ea; color: #1a7a3a; }
+  .POST   { background: #fff3e0; color: #b45309; }
+  .PATCH  { background: #e8eaf6; color: #3949ab; }
+  .DELETE { background: #fce8e8; color: #c62828; }
+  .url { font-family: 'Courier New', monospace; font-size: 12px; color: #1a1a1a; }
+
+  /* ── Code blocks ── */
+  pre { background: #1e2d3d; color: #e2e8f0; border-radius: 6px; padding: 10px 14px; font-size: 11px; font-family: 'Courier New', monospace; overflow-x: auto; margin: 6px 0; line-height: 1.5; }
+  .key { color: #93c5fd; }
+  .str { color: #86efac; }
+  .num { color: #fbbf24; }
+
+  /* ── Expected table ── */
+  .expect { margin-top: 8px; }
+  .expect table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .expect th { background: #2d6a9f; color: #fff; padding: 5px 10px; text-align: left; }
+  .expect td { padding: 5px 10px; border-bottom: 1px solid #e2e8f0; }
+  .expect tr:nth-child(even) td { background: #f0f4f8; }
+  .s200 { color: #1a7a3a; font-weight: 600; }
+  .s201 { color: #0369a1; font-weight: 600; }
+  .s400 { color: #b45309; font-weight: 600; }
+  .s401 { color: #7c3aed; font-weight: 600; }
+  .s403 { color: #c62828; font-weight: 600; }
+  .s404 { color: #9f1239; font-weight: 600; }
+  .s409 { color: #92400e; font-weight: 600; }
+  .s429 { color: #064e3b; font-weight: 600; }
+
+  /* ── Info box ── */
+  .info { background: #eff6ff; border-left: 4px solid #2d6a9f; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 10px 0; font-size: 12px; }
+  .warn { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 10px 0; font-size: 12px; }
+  .tip  { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 10px 0; font-size: 12px; }
+  .info b, .warn b, .tip b { display: block; margin-bottom: 4px; }
+
+  /* ── Variable pill ── */
+  .var { background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 3px; font-family: monospace; font-size: 11px; }
+
+  /* ── Results summary ── */
+  .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+  .result-card { border: 1px solid #d0dff0; border-radius: 8px; padding: 12px; text-align: center; }
+  .result-card .icon { font-size: 22px; }
+  .result-card .label { font-size: 11px; color: #666; margin-top: 4px; }
+  .result-card .value { font-size: 20px; font-weight: 700; color: #1e3a5f; }
+
+  /* ── Page breaks ── */
+  .pb { page-break-before: always; }
+
+  /* ── Header repeat ── */
+  .section-header { background: #1e3a5f; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; }
+
+  /* ── Auth note ── */
+  .auth-note { font-size: 11px; color: #555; margin-top: 6px; }
+  .auth-note code { background: #e8eaf6; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ COVER ══════════════ -->
+<div class="cover">
+  <div style="font-size:48px; margin-bottom:16px;">📋</div>
+  <h1>Event Booking &amp; Ticketing API</h1>
+  <div class="sub">Postman Test Guide — Project Demo</div>
+  <div class="base">Base URL: <strong>http://localhost:5000</strong> &nbsp;|&nbsp; API: <strong>http://localhost:5000/api</strong></div>
+  <div class="date">Generated: May 2026 &nbsp;|&nbsp; Backend: Express + TypeScript + Prisma + PostgreSQL</div>
+</div>
+
+<!-- ══════════════ PAGE 1: SETUP ══════════════ -->
+<div class="page">
+  <h2>⚙️ Setup Instructions</h2>
+
+  <div class="info">
+    <b>Before you start</b>
+    Run these commands in order, then leave the terminal open. Every test in this guide requires the server to be running.
+  </div>
+
+  <div class="step">
+    <strong>Step 1 — Start the backend server</strong>
+    <pre>cd backend
+npm run dev</pre>
+    <div class="tip" style="margin-top:8px"><b>Expected output</b>Server running on port 5000</div>
+  </div>
+
+  <div class="step" style="margin-top:10px">
+    <strong>Step 2 — Open Postman</strong>
+    <ul style="margin-left:18px; margin-top:6px; line-height:1.8; font-size:12px;">
+      <li>Create a new <strong>Collection</strong> called <em>Event Booking API</em></li>
+      <li>Create an <strong>Environment</strong> called <em>Local</em> with these variables:</li>
+    </ul>
+    <div class="expect" style="margin-top:8px">
+      <table>
+        <tr><th>Variable</th><th>Initial Value</th><th>How it gets set</th></tr>
+        <tr><td><span class="var">baseUrl</span></td><td>http://localhost:5000</td><td>Manual</td></tr>
+        <tr><td><span class="var">organiserToken</span></td><td>(empty)</td><td>Auto-set by Login test</td></tr>
+        <tr><td><span class="var">attendeeToken</span></td><td>(empty)</td><td>Auto-set by Login test</td></tr>
+        <tr><td><span class="var">organiserId</span></td><td>(empty)</td><td>Auto-set by Login test</td></tr>
+        <tr><td><span class="var">attendeeId</span></td><td>(empty)</td><td>Auto-set by Login test</td></tr>
+        <tr><td><span class="var">eventId</span></td><td>(empty)</td><td>Auto-set by Create Event test</td></tr>
+        <tr><td><span class="var">publishedEventId</span></td><td>(empty)</td><td>Copy from GET Events response</td></tr>
+        <tr><td><span class="var">venueId</span></td><td>(empty)</td><td>Copy from GET Events response</td></tr>
+        <tr><td><span class="var">categoryId</span></td><td>(empty)</td><td>Copy from GET Events response</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="step" style="margin-top:10px">
+    <strong>Step 3 — Auto-capture tokens (add to Login test's Tests tab)</strong>
+    <pre>// Paste this in the Tests tab of BOTH login requests
+const json = pm.response.json();
+if (json.token) {
+    // For organiser login:
+    pm.environment.set("organiserToken", json.token);
+    pm.environment.set("organiserId", json.user.id);
+
+    // For attendee login (use this version instead):
+    // pm.environment.set("attendeeToken", json.token);
+    // pm.environment.set("attendeeId", json.user.id);
+}</pre>
+  </div>
+
+  <div class="warn" style="margin-top:10px">
+    <b>⚠️ Auth Rate Limit</b>
+    The <code>/api/auth</code> endpoints allow only <strong>10 requests per 15 minutes</strong>. All other endpoints allow 100 requests per 15 minutes. If you hit the limit, wait or restart the server to reset.
+  </div>
+
+  <!-- ── Test Results Summary ── -->
+  <h2 style="margin-top:24px;">✅ Test Results Summary</h2>
+  <div class="result-grid">
+    <div class="result-card"><div class="icon">🟢</div><div class="value">47</div><div class="label">Tests Passed</div></div>
+    <div class="result-card"><div class="icon">🔴</div><div class="value">0</div><div class="label">Tests Failed</div></div>
+    <div class="result-card"><div class="icon">🔧</div><div class="value">3</div><div class="label">Bugs Fixed</div></div>
+  </div>
+  <div class="expect">
+    <table>
+      <tr><th>#</th><th>Bug</th><th>Status</th></tr>
+      <tr><td>1</td><td>Prisma client stale — <code>price</code> field caused every Create Event to 500</td><td style="color:#1a7a3a; font-weight:600;">✅ Fixed (prisma generate)</td></tr>
+      <tr><td>2</td><td>Fake venueId/categoryId caused 500 (FK crash) instead of clean 404</td><td style="color:#1a7a3a; font-weight:600;">✅ Fixed (pre-validate lookup)</td></tr>
+      <tr><td>3</td><td><code>?page=abc</code> / <code>?limit=-1</code> silently fell back instead of returning 400</td><td style="color:#1a7a3a; font-weight:600;">✅ Fixed (strict validation)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════ TEST 1: SERVER ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 1 — Server Health</div>
+
+  <h3><span class="num">1</span> Root endpoint</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/</span></div>
+    <div class="expect"><table>
+      <tr><th>Expected Status</th><th>Expected Body</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td><code>{"message": "Event Booking &amp; Ticketing API is running"}</code></td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Health check</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/health</span></div>
+    <div class="expect"><table>
+      <tr><th>Expected Status</th><th>Expected Body</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td><code>{"status": "ok", "timestamp": "..."}</code></td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">3</span> Unknown route</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/api/does-not-exist</span></div>
+    <div class="expect"><table>
+      <tr><th>Expected Status</th><th>Expected Body</th></tr>
+      <tr><td><span class="s404">404 Not Found</span></td><td><code>{"message": "Route not found"}</code></td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══════════════ TEST 2: REGISTER ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 2 — Auth: Register</div>
+  <div class="info"><b>Endpoint</b> POST {{baseUrl}}/api/auth/register &nbsp;|&nbsp; Content-Type: application/json</div>
+
+  <h3><span class="num">1</span> Register Organiser</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/auth/register</span></div>
+    <pre><span class="key">"fullName"</span>: <span class="str">"Test Organiser"</span>,
+<span class="key">"email"</span>:    <span class="str">"organiser@test.com"</span>,
+<span class="key">"password"</span>: <span class="str">"Password12345"</span>,
+<span class="key">"role"</span>:     <span class="str">"ORGANISER"</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Body contains</th></tr>
+      <tr><td><span class="s201">201 Created</span></td><td>user object with id, fullName, email, role, createdAt</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Register Attendee</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/auth/register</span></div>
+    <pre><span class="key">"fullName"</span>: <span class="str">"Test Attendee"</span>,
+<span class="key">"email"</span>:    <span class="str">"attendee@test.com"</span>,
+<span class="key">"password"</span>: <span class="str">"Password12345"</span>,
+<span class="key">"role"</span>:     <span class="str">"ATTENDEE"</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Body contains</th></tr>
+      <tr><td><span class="s201">201 Created</span></td><td>user object with role = ATTENDEE</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">3</span> Validation &amp; Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Test Case</th><th>Body Change</th><th>Expected</th></tr>
+    <tr><td>Duplicate email</td><td>Same email as organiser above</td><td><span class="s409">409</span> "An account with this email already exists"</td></tr>
+    <tr><td>Missing fullName</td><td>Remove fullName field</td><td><span class="s400">400</span> Validation error</td></tr>
+    <tr><td>Invalid email</td><td><code>"email": "notanemail"</code></td><td><span class="s400">400</span> Invalid email format</td></tr>
+    <tr><td>Short password</td><td><code>"password": "short"</code></td><td><span class="s400">400</span> Password must be at least 12 characters</td></tr>
+    <tr><td>Invalid role</td><td><code>"role": "ADMIN"</code></td><td><span class="s400">400</span> expected ORGANISER or ATTENDEE</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 3: LOGIN ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 3 — Auth: Login</div>
+  <div class="warn"><b>Important</b> Add the Tests tab script (from Setup) to both login requests to auto-save tokens to your environment.</div>
+
+  <h3><span class="num">1</span> Login as Organiser</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/auth/login</span></div>
+    <pre><span class="key">"email"</span>:    <span class="str">"organiser@test.com"</span>,
+<span class="key">"password"</span>: <span class="str">"Password12345"</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td>Response has <code>token</code> and <code>user.role = "ORGANISER"</code></td></tr>
+    </table></div>
+    <p class="auth-note">➜ Paste in <strong>Tests</strong> tab: <code>pm.environment.set("organiserToken", pm.response.json().token); pm.environment.set("organiserId", pm.response.json().user.id);</code></p>
+  </div>
+
+  <h3><span class="num">2</span> Login as Attendee</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/auth/login</span></div>
+    <pre><span class="key">"email"</span>:    <span class="str">"attendee@test.com"</span>,
+<span class="key">"password"</span>: <span class="str">"Password12345"</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td>Response has <code>token</code> and <code>user.role = "ATTENDEE"</code></td></tr>
+    </table></div>
+    <p class="auth-note">➜ Tests tab: <code>pm.environment.set("attendeeToken", pm.response.json().token); pm.environment.set("attendeeId", pm.response.json().user.id);</code></p>
+  </div>
+
+  <h3><span class="num">3</span> Login Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Body</th><th>Expected</th></tr>
+    <tr><td>Wrong password</td><td><code>"password": "WrongPassword12345"</code></td><td><span class="s401">401</span> "Invalid credentials", no token</td></tr>
+    <tr><td>Non-existent email</td><td><code>"email": "nobody@test.com"</code></td><td><span class="s401">401</span> "Invalid credentials"</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 4: GET EVENTS ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 4 — Events: Public GET</div>
+  <div class="info"><b>Note</b> These are public endpoints — no Authorization header needed.</div>
+
+  <h3><span class="num">1</span> Get All Events (defaults)</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/api/events</span></div>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td><code>data</code> array + <code>meta</code> with total, page, limit, totalPages</td></tr>
+    </table></div>
+    <p class="auth-note">➜ Copy a <code>venueId</code> and <code>categoryId</code> from any event in the response. Save them to your environment as <span class="var">venueId</span> and <span class="var">categoryId</span>.<br>➜ Copy the <code>id</code> of any PUBLISHED event and save as <span class="var">publishedEventId</span>.</p>
+  </div>
+
+  <h3><span class="num">2</span> Pagination, Search &amp; Filter</h3>
+  <div class="expect"><table>
+    <tr><th>URL</th><th>Expected</th></tr>
+    <tr><td><code>/api/events?page=1&amp;limit=3</code></td><td><span class="s200">200</span> — 3 results, meta.page=1, meta.limit=3</td></tr>
+    <tr><td><code>/api/events?page=2&amp;limit=3</code></td><td><span class="s200">200</span> — different results, meta.page=2</td></tr>
+    <tr><td><code>/api/events?search=ai</code></td><td><span class="s200">200</span> — only events matching "ai" in title/description</td></tr>
+    <tr><td><code>/api/events?status=PUBLISHED</code></td><td><span class="s200">200</span> — only PUBLISHED events</td></tr>
+    <tr><td><code>/api/events?status=DRAFT</code></td><td><span class="s200">200</span> — only DRAFT events</td></tr>
+  </table></div>
+
+  <h3><span class="num">3</span> Invalid Query Parameters</h3>
+  <div class="expect"><table>
+    <tr><th>URL</th><th>Expected</th></tr>
+    <tr><td><code>/api/events?page=abc</code></td><td><span class="s400">400</span> "page must be a positive integer"</td></tr>
+    <tr><td><code>/api/events?limit=-1</code></td><td><span class="s400">400</span> "limit must be a positive integer"</td></tr>
+    <tr><td><code>/api/events?limit=0</code></td><td><span class="s400">400</span> "limit must be a positive integer"</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 5: CREATE EVENT ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 5 — Events: Create</div>
+  <div class="info"><b>Auth required</b> Header: <code>Authorization: Bearer {{organiserToken}}</code></div>
+
+  <h3><span class="num">1</span> Create Event (valid — as Organiser)</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/events</span></div>
+    <pre><span class="key">"title"</span>:       <span class="str">"AI Security Workshop"</span>,
+<span class="key">"description"</span>: <span class="str">"A workshop about AI and cybersecurity."</span>,
+<span class="key">"eventDate"</span>:   <span class="str">"2026-06-10T10:00:00.000Z"</span>,
+<span class="key">"capacity"</span>:    <span class="num">50</span>,
+<span class="key">"venueId"</span>:     <span class="str">"{{venueId}}"</span>,
+<span class="key">"categoryId"</span>:  <span class="str">"{{categoryId}}"</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s201">201 Created</span></td><td>status = "DRAFT", price = 0, organiserId = your organiser ID</td></tr>
+    </table></div>
+    <p class="auth-note">➜ Tests tab: <code>pm.environment.set("eventId", pm.response.json().event.id);</code></p>
+  </div>
+
+  <h3><span class="num">2</span> Auth Errors</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Auth Header</th><th>Expected</th></tr>
+    <tr><td>As attendee</td><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+    <tr><td>No token</td><td>(none)</td><td><span class="s401">401</span> Unauthorized</td></tr>
+  </table></div>
+
+  <h3><span class="num">3</span> Validation Errors (use organiserToken)</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Change</th><th>Expected</th></tr>
+    <tr><td>Missing title</td><td>Remove "title"</td><td><span class="s400">400</span> Validation error</td></tr>
+    <tr><td>Short description</td><td><code>"description": "short"</code></td><td><span class="s400">400</span> min 10 characters</td></tr>
+    <tr><td>Invalid date</td><td><code>"eventDate": "not-a-date"</code></td><td><span class="s400">400</span> Invalid datetime format</td></tr>
+    <tr><td>Capacity = 0</td><td><code>"capacity": 0</code></td><td><span class="s400">400</span> Capacity must be at least 1</td></tr>
+    <tr><td>Fake venueId</td><td><code>"venueId": "fake-id"</code></td><td><span class="s404">404</span> "Venue not found"</td></tr>
+    <tr><td>Fake categoryId</td><td><code>"categoryId": "fake-id"</code></td><td><span class="s404">404</span> "Category not found"</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 6: PUBLISH ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 6 — Events: Publish</div>
+  <div class="info"><b>Auth required</b> ORGANISER role &nbsp;|&nbsp; Header: <code>Authorization: Bearer {{organiserToken}}</code></div>
+
+  <h3><span class="num">1</span> Publish Own Event</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge PATCH">PATCH</span><span class="url">{{baseUrl}}/api/events/{{eventId}}/publish</span></div>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td>event.status = "PUBLISHED"</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Publish Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>URL / Auth</th><th>Expected</th></tr>
+    <tr><td>Fake event ID</td><td><code>/api/events/00000000-0000-0000-0000-000000000000/publish</code></td><td><span class="s404">404</span> "Event not found"</td></tr>
+    <tr><td>Another organiser's event</td><td>Use an eventId not owned by you</td><td><span class="s403">403</span> "You can only publish your own events"</td></tr>
+    <tr><td>As attendee</td><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+    <tr><td>No token</td><td>(none)</td><td><span class="s401">401</span> Unauthorized</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 7: MY EVENTS ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 7 — Events: Get My Events (Organiser)</div>
+
+  <h3><span class="num">1</span> Get My Events</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/api/events/my</span></div>
+    <div class="expect"><table>
+      <tr><th>Auth</th><th>Status</th><th>Check</th></tr>
+      <tr><td>Bearer {{organiserToken}}</td><td><span class="s200">200 OK</span></td><td>Only organiser's own events, includes attendees[] and ticketsSold stats</td></tr>
+      <tr><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span></td><td>Forbidden</td></tr>
+      <tr><td>(none)</td><td><span class="s401">401</span></td><td>Unauthorized</td></tr>
+    </table></div>
+  </div>
+
+  <div class="tip"><b>Route order note</b> <code>/api/events/my</code> is registered before <code>/api/events/:eventId</code> in the router, so Express never treats "my" as an event ID. This is intentional and correct.</div>
+</div>
+
+<!-- ══════════════ TEST 8: UPDATE EVENT ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 8 — Events: Update</div>
+  <div class="info"><b>Auth required</b> ORGANISER role &nbsp;|&nbsp; Header: <code>Authorization: Bearer {{organiserToken}}</code></div>
+
+  <h3><span class="num">1</span> Update Own Event</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge PATCH">PATCH</span><span class="url">{{baseUrl}}/api/events/{{eventId}}</span></div>
+    <pre><span class="key">"title"</span>:       <span class="str">"AI Security Workshop Updated"</span>,
+<span class="key">"description"</span>: <span class="str">"An updated workshop about AI and cybersecurity."</span>,
+<span class="key">"eventDate"</span>:   <span class="str">"2026-07-15T10:00:00.000Z"</span>,
+<span class="key">"capacity"</span>:    <span class="num">75</span>,
+<span class="key">"venueId"</span>:     <span class="str">"{{venueId}}"</span>,
+<span class="key">"categoryId"</span>:  <span class="str">"{{categoryId}}"</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td>title and capacity updated in response</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Update Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Change</th><th>Expected</th></tr>
+    <tr><td>Fake event ID</td><td><code>/api/events/00000000-.../</code></td><td><span class="s404">404</span> Event not found</td></tr>
+    <tr><td>Other organiser's event</td><td>Different event ID</td><td><span class="s403">403</span> You can only update your own events</td></tr>
+    <tr><td>As attendee</td><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+    <tr><td>No token</td><td>(none)</td><td><span class="s401">401</span> Unauthorized</td></tr>
+    <tr><td>Invalid body</td><td>Short title/desc, bad date</td><td><span class="s400">400</span> Validation error</td></tr>
+    <tr><td>Fake venueId</td><td><code>"venueId": "fake-id"</code></td><td><span class="s404">404</span> "Venue not found"</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 9: DELETE EVENT ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 9 — Events: Delete</div>
+  <div class="info"><b>Tip</b> Create a throwaway event first (POST /api/events) and use its ID here so you don't delete your test data.</div>
+
+  <h3><span class="num">1</span> Delete Event</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge DELETE">DELETE</span><span class="url">{{baseUrl}}/api/events/{{eventId}}</span></div>
+    <div class="expect"><table>
+      <tr><th>Auth</th><th>Status</th><th>Check</th></tr>
+      <tr><td>Bearer {{organiserToken}} (owner)</td><td><span class="s200">200 OK</span></td><td>"Event deleted successfully"</td></tr>
+      <tr><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span></td><td>Forbidden</td></tr>
+      <tr><td>(none)</td><td><span class="s401">401</span></td><td>Unauthorized</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Delete Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Expected</th></tr>
+    <tr><td>Fake event ID</td><td><span class="s404">404</span> "Event not found"</td></tr>
+    <tr><td>Other organiser's event</td><td><span class="s403">403</span> "You can only delete your own events"</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 10: BOOKINGS ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 10 — Bookings: Create</div>
+  <div class="info"><b>Auth required</b> ATTENDEE role &nbsp;|&nbsp; Use <span class="var">publishedEventId</span> (a PUBLISHED event you don't own)</div>
+
+  <h3><span class="num">1</span> Book a Published Event</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/bookings</span></div>
+    <pre><span class="key">"eventId"</span>:  <span class="str">"{{publishedEventId}}"</span>,
+<span class="key">"quantity"</span>: <span class="num">1</span></pre>
+    <div class="expect"><table>
+      <tr><th>Auth</th><th>Status</th><th>Check</th></tr>
+      <tr><td>Bearer {{attendeeToken}}</td><td><span class="s201">201 Created</span></td><td>"Booking created successfully", bookingStatus = "CONFIRMED"</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Update Existing Booking (same event, different quantity)</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/bookings</span></div>
+    <pre><span class="key">"eventId"</span>:  <span class="str">"{{publishedEventId}}"</span>,
+<span class="key">"quantity"</span>: <span class="num">2</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s200">200 OK</span></td><td>"Booking updated successfully" — no duplicate row created</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">3</span> Booking Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Body / Auth</th><th>Expected</th></tr>
+    <tr><td>Book DRAFT event</td><td>Use a DRAFT event's ID</td><td><span class="s400">400</span> "Only published events can be booked"</td></tr>
+    <tr><td>Book fake event</td><td><code>"eventId": "00000000-..."</code></td><td><span class="s404">404</span> "Event not found"</td></tr>
+    <tr><td>Over capacity</td><td><code>"quantity": 99999</code></td><td><span class="s400">400</span> "Booking exceeds available event capacity"</td></tr>
+    <tr><td>Quantity = 0</td><td><code>"quantity": 0</code></td><td><span class="s400">400</span> "Quantity must be at least 1"</td></tr>
+    <tr><td>As organiser</td><td>Bearer {{organiserToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+    <tr><td>No token</td><td>(none)</td><td><span class="s401">401</span> Unauthorized</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 11: GET BOOKINGS ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 11 — Bookings: Get My Bookings</div>
+
+  <h3><span class="num">1</span> Get My Bookings</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/api/bookings/my</span></div>
+    <div class="expect"><table>
+      <tr><th>Auth</th><th>Status</th><th>Check</th></tr>
+      <tr><td>Bearer {{attendeeToken}}</td><td><span class="s200">200 OK</span></td><td>bookings array, each item has event (with venue + category), ordered newest first</td></tr>
+      <tr><td>Bearer {{organiserToken}}</td><td><span class="s403">403</span></td><td>Forbidden</td></tr>
+      <tr><td>(none)</td><td><span class="s401">401</span></td><td>Unauthorized</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══════════════ TEST 12: CANCEL ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 12 — Bookings: Cancel</div>
+
+  <h3><span class="num">1</span> Cancel Booking</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge PATCH">PATCH</span><span class="url">{{baseUrl}}/api/bookings/{{publishedEventId}}/cancel</span></div>
+    <div class="expect"><table>
+      <tr><th>Auth</th><th>Status</th><th>Check</th></tr>
+      <tr><td>Bearer {{attendeeToken}}</td><td><span class="s200">200 OK</span></td><td>"Booking canceled successfully", bookingStatus = "CANCELLED"</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Cancel Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Expected</th></tr>
+    <tr><td>Cancel same booking again</td><td><span class="s400">400</span> "Booking is already canceled"</td></tr>
+    <tr><td>Cancel non-existent booking (fake event ID)</td><td><span class="s404">404</span> "Booking not found"</td></tr>
+    <tr><td>As organiser</td><td><span class="s403">403</span> Forbidden</td></tr>
+    <tr><td>No token</td><td><span class="s401">401</span> Unauthorized</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 13: ORGANISER BOOKING ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 13 — Bookings: Organiser Books for User</div>
+  <div class="info"><b>Auth required</b> ORGANISER role &nbsp;|&nbsp; Header: <code>Authorization: Bearer {{organiserToken}}</code></div>
+
+  <h3><span class="num">1</span> Create Booking for Attendee</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge POST">POST</span><span class="url">{{baseUrl}}/api/bookings/organizer</span></div>
+    <pre><span class="key">"eventId"</span>:  <span class="str">"{{publishedEventId}}"</span>,
+<span class="key">"userId"</span>:   <span class="str">"{{attendeeId}}"</span>,
+<span class="key">"quantity"</span>: <span class="num">1</span></pre>
+    <div class="expect"><table>
+      <tr><th>Status</th><th>Check</th></tr>
+      <tr><td><span class="s201">201 Created</span></td><td>"Booking created successfully for user ..."</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Error Cases</h3>
+  <div class="expect"><table>
+    <tr><th>Case</th><th>Change</th><th>Expected</th></tr>
+    <tr><td>Invalid userId</td><td><code>"userId": "00000000-..."</code></td><td><span class="s404">404</span> "User with ID ... does not exist"</td></tr>
+    <tr><td>Over capacity</td><td><code>"quantity": 99999</code></td><td><span class="s400">400</span> "Booking exceeds available event capacity"</td></tr>
+    <tr><td>As attendee</td><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 14: SECURITY ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 14 — Security Tests</div>
+
+  <h3><span class="num">1</span> Helmet Security Headers</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/</span></div>
+    <p style="font-size:12px; margin-top:4px;">In Postman, click the response <strong>Headers</strong> tab and verify these are present:</p>
+    <div class="expect"><table>
+      <tr><th>Header</th><th>Expected Value</th></tr>
+      <tr><td>x-content-type-options</td><td>nosniff</td></tr>
+      <tr><td>x-frame-options</td><td>SAMEORIGIN</td></tr>
+      <tr><td>content-security-policy</td><td>default-src 'self'; ...</td></tr>
+      <tr><td>strict-transport-security</td><td>max-age=31536000; includeSubDomains</td></tr>
+      <tr><td>x-dns-prefetch-control</td><td>off</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> CORS</h3>
+  <div class="step">
+    <div class="method-url"><span class="badge GET">GET</span><span class="url">{{baseUrl}}/api/events</span></div>
+    <p style="font-size:12px; margin: 4px 0;">Add request header <code>Origin: http://localhost:3000</code></p>
+    <div class="expect"><table>
+      <tr><th>Response Header</th><th>Expected</th></tr>
+      <tr><td>access-control-allow-origin</td><td>http://localhost:3000 ✅</td></tr>
+    </table></div>
+    <p style="font-size:12px; margin-top:6px;">Change to <code>Origin: http://evil.com</code> → header should be <strong>absent</strong> ✅</p>
+  </div>
+
+  <h3><span class="num">3</span> Rate Limiting</h3>
+  <div class="info"><b>Global limiter</b> 100 requests / 15 min on all routes → <span class="s429">429</span> "Too many requests from this IP"<br><b>Auth limiter</b> 10 requests / 15 min on <code>/api/auth/*</code></div>
+  <div class="warn"><b>To test</b> In Postman Runner, run GET /api/events 110 times with no delay. Around request 101 you'll see a 429 response.</div>
+
+  <h3><span class="num">4</span> Protected Routes Without Token</h3>
+  <div class="expect"><table>
+    <tr><th>Request</th><th>Expected</th></tr>
+    <tr><td>POST /api/events (no token)</td><td><span class="s401">401</span> "Access token is missing or invalid"</td></tr>
+    <tr><td>GET /api/events/my (no token)</td><td><span class="s401">401</span></td></tr>
+    <tr><td>GET /api/bookings/my (no token)</td><td><span class="s401">401</span></td></tr>
+    <tr><td>POST /api/bookings (no token)</td><td><span class="s401">401</span></td></tr>
+  </table></div>
+
+  <h3><span class="num">5</span> Wrong Role</h3>
+  <div class="expect"><table>
+    <tr><th>Request</th><th>Auth</th><th>Expected</th></tr>
+    <tr><td>POST /api/events (create)</td><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+    <tr><td>GET /api/bookings/my</td><td>Bearer {{organiserToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+    <tr><td>POST /api/bookings/organizer</td><td>Bearer {{attendeeToken}}</td><td><span class="s403">403</span> Forbidden</td></tr>
+  </table></div>
+</div>
+
+<!-- ══════════════ TEST 15: LOGGING ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Section 15 — Logging</div>
+
+  <h3><span class="num">1</span> Server Log Format</h3>
+  <div class="info"><b>How to check</b> Look at the terminal where <code>npm run dev</code> is running. Every request produces a log line.</div>
+
+  <div class="step">
+    <strong>Expected format for every request:</strong>
+    <pre>[2026-05-24T16:05:04.904Z] POST /api/auth/login 200 - 1252ms
+[2026-05-24T16:05:06.376Z] PATCH /api/events/abc.../publish 403 - 72ms
+[2026-05-24T16:05:06.576Z] GET /api/events 200 - 136ms</pre>
+    <div class="expect" style="margin-top:8px;"><table>
+      <tr><th>Field</th><th>Example</th></tr>
+      <tr><td>Timestamp (ISO)</td><td>2026-05-24T16:05:04.904Z</td></tr>
+      <tr><td>HTTP Method</td><td>GET / POST / PATCH / DELETE</td></tr>
+      <tr><td>Path</td><td>/api/events</td></tr>
+      <tr><td>Status code</td><td>200, 201, 400, 401, 403, 404, 429, 500</td></tr>
+      <tr><td>Duration</td><td>12ms, 450ms …</td></tr>
+    </table></div>
+  </div>
+
+  <h3><span class="num">2</span> Error Logging</h3>
+  <div class="info">When a 500 error occurs, the terminal also logs <code>UNHANDLED SERVER ERROR:</code> with the full stack trace — useful for debugging.</div>
+</div>
+
+<!-- ══════════════ QUICK REFERENCE ══════════════ -->
+<div class="page pb">
+  <div class="section-header">Quick Reference — All Endpoints</div>
+
+  <div class="expect">
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Role</th></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/</td><td>None</td><td>—</td></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/health</td><td>None</td><td>—</td></tr>
+    <tr><td><span class="badge POST">POST</span></td><td>/api/auth/register</td><td>None</td><td>—</td></tr>
+    <tr><td><span class="badge POST">POST</span></td><td>/api/auth/login</td><td>None</td><td>—</td></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/api/events</td><td>None</td><td>—</td></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/api/events/my</td><td>Bearer token</td><td>ORGANISER</td></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/api/events/:eventId</td><td>None</td><td>—</td></tr>
+    <tr><td><span class="badge POST">POST</span></td><td>/api/events</td><td>Bearer token</td><td>ORGANISER</td></tr>
+    <tr><td><span class="badge PATCH">PATCH</span></td><td>/api/events/:eventId/publish</td><td>Bearer token</td><td>ORGANISER</td></tr>
+    <tr><td><span class="badge PATCH">PATCH</span></td><td>/api/events/:eventId</td><td>Bearer token</td><td>ORGANISER</td></tr>
+    <tr><td><span class="badge DELETE">DELETE</span></td><td>/api/events/:eventId</td><td>Bearer token</td><td>ORGANISER</td></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/api/bookings/my</td><td>Bearer token</td><td>ATTENDEE</td></tr>
+    <tr><td><span class="badge POST">POST</span></td><td>/api/bookings</td><td>Bearer token</td><td>ATTENDEE</td></tr>
+    <tr><td><span class="badge PATCH">PATCH</span></td><td>/api/bookings/:eventId/cancel</td><td>Bearer token</td><td>ATTENDEE</td></tr>
+    <tr><td><span class="badge POST">POST</span></td><td>/api/bookings/organizer</td><td>Bearer token</td><td>ORGANISER</td></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/api/categories</td><td>None</td><td>—</td></tr>
+    <tr><td><span class="badge GET">GET</span></td><td>/api/venues</td><td>None</td><td>—</td></tr>
+  </table>
+  </div>
+
+  <h2 style="margin-top:20px;">Status Code Reference</h2>
+  <div class="result-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="result-card"><div class="icon" style="color:#1a7a3a">200</div><div class="label">OK</div></div>
+    <div class="result-card"><div class="icon" style="color:#0369a1">201</div><div class="label">Created</div></div>
+    <div class="result-card"><div class="icon" style="color:#b45309">400</div><div class="label">Bad Request</div></div>
+    <div class="result-card"><div class="icon" style="color:#7c3aed">401</div><div class="label">Unauthorized</div></div>
+    <div class="result-card"><div class="icon" style="color:#c62828">403</div><div class="label">Forbidden</div></div>
+    <div class="result-card"><div class="icon" style="color:#9f1239">404</div><div class="label">Not Found</div></div>
+    <div class="result-card"><div class="icon" style="color:#92400e">409</div><div class="label">Conflict</div></div>
+    <div class="result-card"><div class="icon" style="color:#064e3b">429</div><div class="label">Rate Limited</div></div>
+  </div>
+
+  <div class="tip" style="margin-top:20px;">
+    <b>Demo flow (recommended order)</b>
+    1 → Start server &nbsp;|&nbsp;
+    2 → Register both users &nbsp;|&nbsp;
+    3 → Login (save tokens) &nbsp;|&nbsp;
+    4 → GET events + copy IDs &nbsp;|&nbsp;
+    5 → Create event &nbsp;|&nbsp;
+    6 → Publish event &nbsp;|&nbsp;
+    10 → Book event &nbsp;|&nbsp;
+    11 → View bookings &nbsp;|&nbsp;
+    12 → Cancel booking &nbsp;|&nbsp;
+    14 → Show security headers
+  </div>
+</div>
+
+</body>
+</html>

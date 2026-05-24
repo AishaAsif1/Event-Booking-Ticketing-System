@@ -31,11 +31,18 @@ export const getAllEvents = async (req: Request, res: Response) => {
       req.query.order as string | string[] | undefined
     );
 
-    const parsedPage = Number(rawPage);
-    const parsedLimit = Number(rawLimit);
+    const parsedPage = rawPage !== undefined ? Number(rawPage) : NaN;
+    const parsedLimit = rawLimit !== undefined ? Number(rawLimit) : NaN;
 
-    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
-    const limit = Number.isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
+    if (rawPage !== undefined && (Number.isNaN(parsedPage) || parsedPage < 1 || !Number.isInteger(parsedPage))) {
+      return res.status(400).json({ message: "Invalid query parameter: page must be a positive integer" });
+    }
+    if (rawLimit !== undefined && (Number.isNaN(parsedLimit) || parsedLimit < 1 || !Number.isInteger(parsedLimit))) {
+      return res.status(400).json({ message: "Invalid query parameter: limit must be a positive integer" });
+    }
+
+    const page = Number.isNaN(parsedPage) ? 1 : parsedPage;
+    const limit = Number.isNaN(parsedLimit) ? 10 : parsedLimit;
 
     const search =
       typeof rawSearch === "string" && rawSearch.trim() !== ""
@@ -196,6 +203,18 @@ export const createEvent = async (
 
     const organiserId = req.user!.userId;
 
+    const [venue, category] = await Promise.all([
+      prisma.venue.findUnique({ where: { id: venueId } }),
+      prisma.category.findUnique({ where: { id: categoryId } }),
+    ]);
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
     const event = await prisma.event.create({
       data: {
         title,
@@ -324,6 +343,18 @@ export const updateEvent = async (
       return res.status(403).json({
         message: "You can only update your own events",
       });
+    }
+
+    const [venue, category] = await Promise.all([
+      prisma.venue.findUnique({ where: { id: venueId } }),
+      prisma.category.findUnique({ where: { id: categoryId } }),
+    ]);
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
     }
 
     const updatedEvent = await prisma.event.update({
