@@ -6,7 +6,6 @@ import Button from "./ui/Button";
 import AlertMessage from "./ui/AlertMessage";
 import LoadingSpinner from "./ui/LoadingSpinner";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../lib/api";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
 
@@ -34,6 +33,7 @@ const categoryImages: Record<string, string> = {
   sport: "/event-images/sports.jpg",
   technology: "/event-images/technology.jpg",
   tech: "/event-images/technology.jpg",
+  ai: "/event-images/technology.jpg",
   workshop: "/event-images/workshop.jpg",
 };
 
@@ -87,7 +87,8 @@ function getEventImage({
   if (
     titleKey.includes("concert") ||
     titleKey.includes("music") ||
-    titleKey.includes("festival")
+    titleKey.includes("festival") ||
+    titleKey.includes("live")
   ) {
     return "/event-images/concert.jpg";
   }
@@ -142,7 +143,6 @@ export default function EventCard({
   const isAttendee = user?.role === "ATTENDEE";
   const isLoggedOut = !user;
 
-  const [isBooking, setIsBooking] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">(
     "info"
@@ -165,7 +165,7 @@ export default function EventCard({
     CANCELLED: "bg-red-100 text-red-700",
   };
 
-  async function handleBookTicket() {
+  function handleBookTicket() {
     setFeedbackMessage("");
 
     if (!user) {
@@ -185,39 +185,7 @@ export default function EventCard({
       return;
     }
 
-    setIsBooking(true);
-
-    try {
-      const res = await apiFetch("/bookings", {
-        method: "POST",
-        body: JSON.stringify({
-          eventId: id,
-          quantity: 1,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setFeedbackType("error");
-        setFeedbackMessage(data.message || "Failed to book ticket.");
-        return;
-      }
-
-      setFeedbackType("success");
-      setFeedbackMessage(
-        "Ticket booked successfully! Redirecting to your bookings..."
-      );
-
-      setTimeout(() => {
-        router.push("/bookings");
-      }, 1000);
-    } catch {
-      setFeedbackType("error");
-      setFeedbackMessage("Could not reach the server. Is the backend running?");
-    } finally {
-      setIsBooking(false);
-    }
+    router.push(`/checkout/${id}`);
   }
 
   function handleManageEvent() {
@@ -296,18 +264,14 @@ export default function EventCard({
           {(isAttendee || isLoggedOut) && (
             <Button
               fullWidth
-              disabled={status !== "PUBLISHED" || isBooking}
+              disabled={status !== "PUBLISHED"}
               onClick={handleBookTicket}
             >
-              {isBooking ? (
-                <LoadingSpinner />
-              ) : isLoggedOut ? (
-                "Login to Book"
-              ) : status === "PUBLISHED" ? (
-                "Book Ticket"
-              ) : (
-                "Not Available"
-              )}
+              {isLoggedOut
+                ? "Login to Book"
+                : status === "PUBLISHED"
+                ? "Book Ticket"
+                : "Not Available"}
             </Button>
           )}
 
