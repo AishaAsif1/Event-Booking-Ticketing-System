@@ -102,3 +102,4 @@ export default function BookingCard({
     </div>
   );
 }
+// Gemini was used for HTML structure and styling

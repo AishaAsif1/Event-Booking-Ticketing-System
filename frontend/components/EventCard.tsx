@@ -287,3 +287,5 @@ export default function EventCard({
     </div>
   );
 }
+
+// Gemini was used for HTML structure and styling

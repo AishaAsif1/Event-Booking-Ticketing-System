@@ -342,3 +342,5 @@ export default function HomePage() {
     </main>
   );
 }
+
+// Used ChatGPT and Gemini for assistance in writing this file. The homepage is designed to be visually appealing and user-friendly, with clear sections for featured events, categories, how it works, user reviews, and a strong call to action.

@@ -134,3 +134,5 @@ export default function Navbar() {
     </header>
   );
 }
+
+// Gemini was used for HTML structure and styling

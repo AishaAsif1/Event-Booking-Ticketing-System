@@ -492,3 +492,5 @@ export default function EditEventPage() {
     </main>
   );
 }
+// Reference: nextjs.org/docs/app/building-your-application/routing/dynamic-routes
+// Used ChatGPT and Gemini for assistance in writing this file

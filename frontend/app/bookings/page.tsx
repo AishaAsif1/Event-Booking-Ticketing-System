@@ -228,3 +228,5 @@ export default function BookingsPage() {
     </main>
   );
 }
+
+// Reference: nextjs.org/docs/app/building-your-application/routing/middleware
