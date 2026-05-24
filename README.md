@@ -212,7 +212,6 @@ Admin panel was not implemented because it was listed as an optional extra featu
 - Environment variables
 - Production build support
 
----
 
 ## Project Structure
 
@@ -295,8 +294,8 @@ Event-Booking-Ticketing-System/
     └── lib/
         └── api.ts
 
-
-Prerequisites
+```
+###Prerequisites
 
 For local development:
 
@@ -829,3 +828,5 @@ API test guide / test file
 Notes
 
 This project satisfies the required backend, frontend, booking, dashboard, and deployment features for the Event Booking & Ticketing System. Bonus features such as pagination, advanced search/filtering, rate limiting, improved validation, improved security measures, and improved UI polish were also implemented.
+
+
