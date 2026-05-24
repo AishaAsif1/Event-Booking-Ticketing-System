@@ -830,3 +830,4 @@ Notes
 This project satisfies the required backend, frontend, booking, dashboard, and deployment features for the Event Booking & Ticketing System. Bonus features such as pagination, advanced search/filtering, rate limiting, improved validation, improved security measures, and improved UI polish were also implemented.
 
 
+
