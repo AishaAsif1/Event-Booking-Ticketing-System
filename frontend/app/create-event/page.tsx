@@ -10,7 +10,11 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "../../lib/api";
 
-type Option = { id: string; name: string };
+type Option = {
+  id: string;
+  name: string;
+  city?: string;
+};
 
 type EventFormData = {
   title: string;
@@ -19,6 +23,7 @@ type EventFormData = {
   venueId: string;
   date: string;
   capacity: string;
+  price: string;
 };
 
 type EventErrors = {
@@ -28,6 +33,7 @@ type EventErrors = {
   venueId?: string;
   date?: string;
   capacity?: string;
+  price?: string;
 };
 
 const today = new Date().toISOString().split("T")[0];
@@ -47,48 +53,56 @@ export default function CreateEventPage() {
     venueId: "",
     date: "",
     capacity: "",
+    price: "",
   });
 
   const [errors, setErrors] = useState<EventErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">("info");
+  const [feedbackType, setFeedbackType] = useState<"success" | "error" | "info">(
+    "info"
+  );
 
-  // Auth guard
   useEffect(() => {
     if (authLoading) return;
+
     if (!user) {
       router.push("/login");
       return;
     }
+
     if (user.role !== "ORGANISER") {
       router.push("/events");
     }
   }, [user, authLoading, router]);
 
-  // Derive venue/category options from existing events
   useEffect(() => {
     async function loadOptions() {
+      setOptionsLoading(true);
+
       try {
-        const res = await apiFetch("/events?limit=100");
-        const data = await res.json();
-        const events: Array<{
-          venue: { id: string; name: string };
-          category: { id: string; name: string };
-        }> = data.data ?? [];
+        const [categoriesRes, venuesRes] = await Promise.all([
+          apiFetch("/categories"),
+          apiFetch("/venues"),
+        ]);
 
-        const venueMap = new Map<string, string>();
-        const categoryMap = new Map<string, string>();
+        const categoriesData = await categoriesRes.json();
+        const venuesData = await venuesRes.json();
 
-        for (const ev of events) {
-          if (ev.venue) venueMap.set(ev.venue.id, ev.venue.name);
-          if (ev.category) categoryMap.set(ev.category.id, ev.category.name);
+        if (categoriesRes.ok) {
+          setCategories(categoriesData.categories ?? []);
+        } else {
+          setCategories([]);
         }
 
-        setVenues(Array.from(venueMap, ([id, name]) => ({ id, name })));
-        setCategories(Array.from(categoryMap, ([id, name]) => ({ id, name })));
+        if (venuesRes.ok) {
+          setVenues(venuesData.venues ?? []);
+        } else {
+          setVenues([]);
+        }
       } catch {
-        // silently fail — user will see empty selects
+        setCategories([]);
+        setVenues([]);
       } finally {
         setOptionsLoading(false);
       }
@@ -98,11 +112,21 @@ export default function CreateEventPage() {
   }, []);
 
   function handleInputChange(
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) {
     const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: "" });
+
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+
+    setErrors({
+      ...errors,
+      [name]: "",
+    });
   }
 
   function validateForm() {
@@ -133,8 +157,10 @@ export default function CreateEventPage() {
     } else {
       const selected = new Date(formData.date);
       const now = new Date();
+
       now.setHours(0, 0, 0, 0);
       selected.setHours(0, 0, 0, 0);
+
       if (selected < now) {
         newErrors.date = "Event date cannot be in the past.";
       }
@@ -146,7 +172,14 @@ export default function CreateEventPage() {
       newErrors.capacity = "Capacity must be greater than 0.";
     }
 
+    if (!formData.price.trim()) {
+      newErrors.price = "Price is required.";
+    } else if (Number(formData.price) < 0) {
+      newErrors.price = "Price cannot be negative.";
+    }
+
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   }
 
@@ -168,10 +201,11 @@ export default function CreateEventPage() {
       const res = await apiFetch("/events", {
         method: "POST",
         body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
           eventDate,
           capacity: Number(formData.capacity),
+          price: Number(formData.price),
           venueId: formData.venueId,
           categoryId: formData.categoryId,
         }),
@@ -187,6 +221,7 @@ export default function CreateEventPage() {
 
       setFeedbackType("success");
       setFeedbackMessage("Event created successfully! Redirecting...");
+
       setFormData({
         title: "",
         description: "",
@@ -194,6 +229,7 @@ export default function CreateEventPage() {
         venueId: "",
         date: "",
         capacity: "",
+        price: "",
       });
 
       setTimeout(() => router.push("/events"), 1500);
@@ -225,6 +261,7 @@ export default function CreateEventPage() {
               Fill in the event details below.
             </p>
           </div>
+
           <Link href="/events">
             <Button variant="secondary">Back to Events</Button>
           </Link>
@@ -252,6 +289,7 @@ export default function CreateEventPage() {
               >
                 Description
               </label>
+
               <textarea
                 id="description"
                 name="description"
@@ -265,13 +303,13 @@ export default function CreateEventPage() {
                     : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
                 }`}
               />
+
               {errors.description && (
                 <p className="text-sm text-red-600">{errors.description}</p>
               )}
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
-              {/* Category select */}
               <div className="space-y-2">
                 <label
                   htmlFor="categoryId"
@@ -279,11 +317,12 @@ export default function CreateEventPage() {
                 >
                   Category
                 </label>
+
                 {optionsLoading ? (
                   <p className="text-sm text-gray-500">Loading categories...</p>
                 ) : categories.length === 0 ? (
                   <p className="text-sm text-yellow-600">
-                    No categories found. Seed the database and ensure events exist.
+                    No categories found. Please seed the database.
                   </p>
                 ) : (
                   <select
@@ -298,19 +337,19 @@ export default function CreateEventPage() {
                     }`}
                   >
                     <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
                       </option>
                     ))}
                   </select>
                 )}
+
                 {errors.categoryId && (
                   <p className="text-sm text-red-600">{errors.categoryId}</p>
                 )}
               </div>
 
-              {/* Venue select */}
               <div className="space-y-2">
                 <label
                   htmlFor="venueId"
@@ -318,11 +357,12 @@ export default function CreateEventPage() {
                 >
                   Venue
                 </label>
+
                 {optionsLoading ? (
                   <p className="text-sm text-gray-500">Loading venues...</p>
                 ) : venues.length === 0 ? (
                   <p className="text-sm text-yellow-600">
-                    No venues found. Seed the database and ensure events exist.
+                    No venues found. Please seed the database.
                   </p>
                 ) : (
                   <select
@@ -337,13 +377,14 @@ export default function CreateEventPage() {
                     }`}
                   >
                     <option value="">Select venue</option>
-                    {venues.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
+                    {venues.map((venue) => (
+                      <option key={venue.id} value={venue.id}>
+                        {venue.name} — {venue.city}
                       </option>
                     ))}
                   </select>
                 )}
+
                 {errors.venueId && (
                   <p className="text-sm text-red-600">{errors.venueId}</p>
                 )}
@@ -366,6 +407,16 @@ export default function CreateEventPage() {
                 value={formData.capacity}
                 placeholder="100"
                 error={errors.capacity}
+                onChange={handleInputChange}
+              />
+
+              <Input
+                label="Ticket Price"
+                name="price"
+                type="number"
+                value={formData.price}
+                placeholder="0"
+                error={errors.price}
                 onChange={handleInputChange}
               />
             </div>

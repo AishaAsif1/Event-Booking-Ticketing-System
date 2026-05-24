@@ -1,0 +1,8 @@
+[33m5ae06fb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Improve backend logging and security middleware
+[33m22fadbd[m Add dashboard pagination and booking cancellation
+[33m4230314[m Add organiser dashboard and event pagination
+[33mf597d32[m Fix production Docker configuration
+[33mff94b7b[m Updated Dockerfiles
+[33m12b75ff[m Updated Dockerfiles
+[33mf5c86ab[m Merge branch 'main' of https://github.com/AishaAsif1/Event-Booking-Ticketing-System
+[33m4b1f65f[m Connect event booking flow and add logout

@@ -59,7 +59,6 @@ function getEventImage({
   const titleKey = normalizeText(title);
   const categoryKey = normalizeText(category);
 
-  // Title-based checks first, because backend category may not always be accurate.
   if (
     titleKey.includes("security") ||
     titleKey.includes("cyber") ||
@@ -117,7 +116,6 @@ function getEventImage({
     return "/event-images/education.jpg";
   }
 
-  // Category-based fallback.
   if (categoryImages[categoryKey]) {
     return categoryImages[categoryKey];
   }
@@ -222,6 +220,10 @@ export default function EventCard({
     }
   }
 
+  function handleManageEvent() {
+    router.push(`/edit-event/${id}`);
+  }
+
   return (
     <div className="group flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl">
       <div className="relative overflow-hidden">
@@ -310,7 +312,7 @@ export default function EventCard({
           )}
 
           {isOrganiser && (
-            <Button fullWidth variant="secondary">
+            <Button fullWidth variant="secondary" onClick={handleManageEvent}>
               Manage Event
             </Button>
           )}

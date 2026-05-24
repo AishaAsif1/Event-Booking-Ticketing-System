@@ -168,8 +168,8 @@ export default function DashboardPage() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-lg leading-8 text-gray-600">
-                Manage your events, publish drafts, and track your event
-                capacity from one place.
+                Manage your events, publish drafts, edit event details, and
+                track your event capacity from one place.
               </p>
             </div>
 
@@ -262,7 +262,7 @@ export default function DashboardPage() {
                 My Events
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                Publish drafts or delete events you no longer need.
+                Edit events, publish drafts, or delete events you no longer need.
               </p>
             </div>
 
@@ -313,6 +313,10 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row">
+                      <Link href={`/edit-event/${event.id}`}>
+                        <Button variant="secondary">Edit</Button>
+                      </Link>
+
                       {event.status !== "PUBLISHED" && (
                         <Button
                           disabled={actionLoadingId === event.id}

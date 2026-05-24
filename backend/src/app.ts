@@ -6,6 +6,8 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/auth.routes";
 import eventRoutes from "./routes/event.routes";
 import bookingRoutes from "./routes/booking.routes";
+import categoryRoutes from "./routes/category.routes";
+import venueRoutes from "./routes/venue.routes";
 
 const app = express();
 
@@ -15,7 +17,7 @@ const allowedOrigins =
 app.use(
   cors({
     origin: allowedOrigins,
-    credentials: true
+    credentials: true,
   })
 );
 
@@ -27,8 +29,8 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    message: "Too many requests from this IP, please try again later."
-  }
+    message: "Too many requests from this IP, please try again later.",
+  },
 });
 
 app.use(globalLimiter);
@@ -51,24 +53,26 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
-    message: "Event Booking & Ticketing API is running"
+    message: "Event Booking & Ticketing API is running",
   });
 });
 
 app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     status: "ok",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/venues", venueRoutes);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
-    message: "Route not found"
+    message: "Route not found",
   });
 });
 
@@ -77,7 +81,7 @@ app.use(
     console.error("UNHANDLED SERVER ERROR:", error);
 
     res.status(500).json({
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 );

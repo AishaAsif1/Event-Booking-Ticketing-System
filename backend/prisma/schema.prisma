@@ -61,6 +61,7 @@ model Event {
   description String
   eventDate   DateTime
   capacity    Int
+  price       Float       @default(0) 
   status      EventStatus @default(DRAFT)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

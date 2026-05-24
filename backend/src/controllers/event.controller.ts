@@ -1,60 +1,144 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
 import { AuthenticatedRequest } from "../middlewares/auth";
-import { eventQuerySchema } from "../validators/event.validator"; //
 
-//source Chatgpt - while writing code we were faced with some errors in creating events and we used chat gpt to fix the errors 
+// source ChatGPT - while writing code we were faced with some errors in creating events and we used ChatGPT to fix the errors
 
-const getSingleParam = (param: string | string[] | undefined): string | undefined =>
-  Array.isArray(param) ? param[0] : param;
+const getSingleParam = (
+  param: string | string[] | undefined
+): string | undefined => {
+  return Array.isArray(param) ? param[0] : param;
+};
 
 export const getAllEvents = async (req: Request, res: Response) => {
   try {
-// 1. Validate and extract query parameters
-const queryParams = eventQuerySchema.parse(req.query);
-const { page, limit, search, categoryId, status, sortBy, order } = queryParams;
-const venueId = getSingleParam(req.query.venueId as string | string[] | undefined);
-const skip = (page - 1) * limit; // Calculate how many records to skip
-// 2. Build the dynamic 'where' filter
-const where: any = {};
-if (search) {
-  where.OR = [
-    { title: { contains: search, mode: 'insensitive' } },
-    { description: { contains: search, mode: 'insensitive' } }
-  ];
-}
+    const rawPage = getSingleParam(req.query.page as string | string[] | undefined);
+    const rawLimit = getSingleParam(req.query.limit as string | string[] | undefined);
+    const rawSearch = getSingleParam(req.query.search as string | string[] | undefined);
+    const rawCategoryId = getSingleParam(
+      req.query.categoryId as string | string[] | undefined
+    );
+    const rawVenueId = getSingleParam(
+      req.query.venueId as string | string[] | undefined
+    );
+    const rawStatus = getSingleParam(
+      req.query.status as string | string[] | undefined
+    );
+    const rawSortBy = getSingleParam(
+      req.query.sortBy as string | string[] | undefined
+    );
+    const rawOrder = getSingleParam(
+      req.query.order as string | string[] | undefined
+    );
 
-if (categoryId) where.categoryId = categoryId;
-if (venueId) where.venueId = venueId;
-if (status) where.status = status;
+    const parsedPage = Number(rawPage);
+    const parsedLimit = Number(rawLimit);
 
-// 3. Execute count and findMany in parallel for efficiency
-const [events, total] = await Promise.all([
-  prisma.event.findMany({
-    where,
-    take: limit,
-    skip,
-    orderBy: { [sortBy!]: order },
-    include: { category: true, venue: true },
-  }),
-  prisma.event.count({ where })
-]);
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const limit = Number.isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
 
-    // 4. Return data with pagination metadata
+    const search =
+      typeof rawSearch === "string" && rawSearch.trim() !== ""
+        ? rawSearch.trim()
+        : undefined;
+
+    const categoryId =
+      typeof rawCategoryId === "string" &&
+      rawCategoryId.trim() !== "" &&
+      rawCategoryId !== "ALL" &&
+      rawCategoryId !== "All"
+        ? rawCategoryId
+        : undefined;
+
+    const venueId =
+      typeof rawVenueId === "string" &&
+      rawVenueId.trim() !== "" &&
+      rawVenueId !== "ALL" &&
+      rawVenueId !== "All"
+        ? rawVenueId
+        : undefined;
+
+    const status =
+      rawStatus === "DRAFT" ||
+      rawStatus === "PUBLISHED" ||
+      rawStatus === "CANCELLED"
+        ? rawStatus
+        : undefined;
+
+    const sortBy =
+      rawSortBy === "eventDate" ||
+      rawSortBy === "title" ||
+      rawSortBy === "createdAt"
+        ? rawSortBy
+        : "eventDate";
+
+    const order = rawOrder === "desc" ? "desc" : "asc";
+
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        {
+          title: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          description: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ];
+    }
+
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
+    if (venueId) {
+      where.venueId = venueId;
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        where,
+        take: limit,
+        skip,
+        orderBy: {
+          [sortBy]: order,
+        },
+        include: {
+          category: true,
+          venue: true,
+        },
+      }),
+      prisma.event.count({
+        where,
+      }),
+    ]);
+
     return res.status(200).json({
       data: events,
       meta: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("GET ALL EVENTS ERROR:", error);
-    return res.status(400).json({
-      message: "Invalid query parameters",
-      errors: error.issues || error.errors
+
+    return res.status(500).json({
+      message: "Something went wrong while fetching events",
     });
   }
 };
@@ -65,27 +149,32 @@ export const getEventById = async (req: Request, res: Response) => {
 
     if (!eventId) {
       return res.status(400).json({
-        message: "Invalid event id"
+        message: "Invalid event id",
       });
     }
 
     const event = await prisma.event.findUnique({
       where: {
-        id: eventId
-      }
+        id: eventId,
+      },
+      include: {
+        category: true,
+        venue: true,
+      },
     });
 
     if (!event) {
       return res.status(404).json({
-        message: "Event not found"
+        message: "Event not found",
       });
     }
 
     return res.status(200).json(event);
   } catch (error) {
     console.error("GET EVENT BY ID ERROR:", error);
+
     return res.status(500).json({
-      message: "Something went wrong while fetching the event"
+      message: "Something went wrong while fetching the event",
     });
   }
 };
@@ -95,8 +184,15 @@ export const createEvent = async (
   res: Response
 ) => {
   try {
-    const { title, description, eventDate, capacity, venueId, categoryId } =
-      req.body;
+    const {
+      title,
+      description,
+      eventDate,
+      capacity,
+      price,
+      venueId,
+      categoryId,
+    } = req.body;
 
     const organiserId = req.user!.userId;
 
@@ -106,20 +202,26 @@ export const createEvent = async (
         description,
         eventDate: new Date(eventDate),
         capacity,
+        price: price ?? 0,
         venueId,
         categoryId,
-        organiserId
-      }
+        organiserId,
+      },
+      include: {
+        category: true,
+        venue: true,
+      },
     });
 
     return res.status(201).json({
       message: "Event created successfully",
-      event
+      event,
     });
   } catch (error) {
     console.error("CREATE EVENT ERROR:", error);
+
     return res.status(500).json({
-      message: "Something went wrong while creating the event"
+      message: "Something went wrong while creating the event",
     });
   }
 };
@@ -134,41 +236,50 @@ export const publishEvent = async (
 
     if (!eventId) {
       return res.status(400).json({
-        message: "Invalid event id"
+        message: "Invalid event id",
       });
     }
 
     const existingEvent = await prisma.event.findUnique({
-      where: { id: eventId }
+      where: {
+        id: eventId,
+      },
     });
 
     if (!existingEvent) {
       return res.status(404).json({
-        message: "Event not found"
+        message: "Event not found",
       });
     }
 
     if (existingEvent.organiserId !== organiserId) {
       return res.status(403).json({
-        message: "You can only publish your own events"
+        message: "You can only publish your own events",
       });
     }
 
     const updatedEvent = await prisma.event.update({
-      where: { id: eventId },
+      where: {
+        id: eventId,
+      },
       data: {
-        status: "PUBLISHED"
-      }
+        status: "PUBLISHED",
+      },
+      include: {
+        category: true,
+        venue: true,
+      },
     });
 
     return res.status(200).json({
       message: "Event published successfully",
-      event: updatedEvent
+      event: updatedEvent,
     });
   } catch (error) {
     console.error("PUBLISH EVENT ERROR:", error);
+
     return res.status(500).json({
-      message: "Something went wrong while publishing the event"
+      message: "Something went wrong while publishing the event",
     });
   }
 };
@@ -180,50 +291,69 @@ export const updateEvent = async (
   try {
     const eventId = getSingleParam(req.params.eventId);
     const organiserId = req.user!.userId;
-    const { title, description, eventDate, capacity, venueId, categoryId } = req.body;
+
+    const {
+      title,
+      description,
+      eventDate,
+      capacity,
+      price,
+      venueId,
+      categoryId,
+    } = req.body;
 
     if (!eventId) {
       return res.status(400).json({
-        message: "Invalid event id"
+        message: "Invalid event id",
       });
     }
 
     const existingEvent = await prisma.event.findUnique({
-      where: { id: eventId }
+      where: {
+        id: eventId,
+      },
     });
 
     if (!existingEvent) {
       return res.status(404).json({
-        message: "Event not found"
+        message: "Event not found",
       });
     }
 
     if (existingEvent.organiserId !== organiserId) {
       return res.status(403).json({
-        message: "You can only update your own events"
+        message: "You can only update your own events",
       });
     }
 
     const updatedEvent = await prisma.event.update({
-      where: { id: eventId },
+      where: {
+        id: eventId,
+      },
       data: {
         title,
         description,
-        eventDate: eventDate ? new Date(eventDate) : undefined,
+        eventDate: new Date(eventDate),
         capacity,
+        price: price ?? 0,
         venueId,
-        categoryId
-      }
+        categoryId,
+      },
+      include: {
+        category: true,
+        venue: true,
+      },
     });
 
     return res.status(200).json({
       message: "Event updated successfully",
-      event: updatedEvent
+      event: updatedEvent,
     });
   } catch (error) {
     console.error("UPDATE EVENT ERROR:", error);
+
     return res.status(500).json({
-      message: "Something went wrong while updating the event"
+      message: "Something went wrong while updating the event",
     });
   }
 };
@@ -238,37 +368,42 @@ export const deleteEvent = async (
 
     if (!eventId) {
       return res.status(400).json({
-        message: "Invalid event id"
+        message: "Invalid event id",
       });
     }
 
     const existingEvent = await prisma.event.findUnique({
-      where: { id: eventId }
+      where: {
+        id: eventId,
+      },
     });
 
     if (!existingEvent) {
       return res.status(404).json({
-        message: "Event not found"
+        message: "Event not found",
       });
     }
 
     if (existingEvent.organiserId !== organiserId) {
       return res.status(403).json({
-        message: "You can only delete your own events"
+        message: "You can only delete your own events",
       });
     }
 
     await prisma.event.delete({
-      where: { id: eventId }
+      where: {
+        id: eventId,
+      },
     });
 
     return res.status(200).json({
-      message: "Event deleted successfully"
+      message: "Event deleted successfully",
     });
   } catch (error) {
     console.error("DELETE EVENT ERROR:", error);
+
     return res.status(500).json({
-      message: "Something went wrong while deleting the event"
+      message: "Something went wrong while deleting the event",
     });
   }
 };
@@ -281,17 +416,27 @@ export const getUserEvents = async (
     const organiserId = req.user!.userId;
 
     const events = await prisma.event.findMany({
-      where: { organiserId }
+      where: {
+        organiserId,
+      },
+      include: {
+        category: true,
+        venue: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
     return res.status(200).json({
       message: "Organizer events fetched successfully",
-      events
+      events,
     });
   } catch (error) {
     console.error("GET MY EVENTS ERROR:", error);
+
     return res.status(500).json({
-      message: "Something went wrong while fetching your events"
+      message: "Something went wrong while fetching your events",
     });
   }
 };
